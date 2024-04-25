@@ -536,7 +536,8 @@ void SlamToolbox::loadPoseGraphByParams()
   std::string filename;
   geometry_msgs::msg::Pose2D pose;
   bool dock = false;
-  if (shouldStartWithPoseGraph(filename, pose, dock)) {
+  bool map_offset = false;
+  if (shouldStartWithPoseGraph(filename, pose, dock, map_offset)) {
     std::shared_ptr<slam_toolbox::srv::DeserializePoseGraph::Request> req =
       std::make_shared<slam_toolbox::srv::DeserializePoseGraph::Request>();
     std::shared_ptr<slam_toolbox::srv::DeserializePoseGraph::Response> resp =
@@ -558,7 +559,7 @@ void SlamToolbox::loadPoseGraphByParams()
 /*****************************************************************************/
 bool SlamToolbox::shouldStartWithPoseGraph(
   std::string & filename,
-  geometry_msgs::msg::Pose2D & pose, bool & start_at_dock)
+  geometry_msgs::msg::Pose2D & pose, bool & start_at_dock, bool & offset_map)
 /*****************************************************************************/
 {
   // if given a map to load at run time, do it.
@@ -574,22 +575,45 @@ bool SlamToolbox::shouldStartWithPoseGraph(
     this->declare_parameter("map_file_name", std::string(""));
   }
   filename = this->get_parameter("map_file_name").as_string();
+  if (!this->has_parameter("map_start_with_map_offset")) {
+    this->declare_parameter("map_start_with_map_offset", false);
+  }
+  auto map_start_with_map_offset = this->get_parameter("map_start_with_map_offset").get_parameter_value();
+
   if (!filename.empty()) {
     std::vector<double> read_pose;
-    if (map_start_pose.get_type() != rclcpp::ParameterType::PARAMETER_NOT_SET) {
+    if (map_start_pose.get_type() != rclcpp::ParameterType::PARAMETER_NOT_SET && map_start_with_map_offset.get_type() != rclcpp::ParameterType::PARAMETER_NOT_SET) {
       read_pose = map_start_pose.get<std::vector<double>>();
+      offset_map = map_start_with_map_offset.get<bool>();
       start_at_dock = false;
-      if (read_pose.size() != 3) {
-        RCLCPP_ERROR(get_logger(), "LocalizationSlamToolbox: Incorrect "
-          "number of arguments for map starting pose. Must be in format: "
-          "[x, y, theta]. Starting at the origin");
-        pose.x = 0.;
-        pose.y = 0.;
-        pose.theta = 0.;
-      } else {
-        pose.x = read_pose[0];
-        pose.y = read_pose[1];
-        pose.theta = read_pose[2];
+      if(offset_map){
+        geometry_msgs::msg::TransformStamped transform_stamped;
+        tf2::Quaternion quat;
+        transform_stamped = tf_->lookupTransform("map", "base_link", tf2::TimePointZero, tf2::durationFromSec(0.1));
+        tf2::fromMsg(transform_stamped.transform.rotation, quat);
+        double roll, pitch, yaw;
+        tf2::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+        RCLCPP_INFO(this->get_logger(), "Transform from map to base_link: (x: %f, y: %f, tetha: %f)",
+                    transform_stamped.transform.translation.x,
+                    transform_stamped.transform.translation.y,
+                    yaw);
+        pose.x = transform_stamped.transform.translation.x;
+        pose.y = transform_stamped.transform.translation.y;
+        pose.theta = yaw;
+      }
+      else{
+        if (read_pose.size() != 3) {
+          RCLCPP_ERROR(get_logger(), "LocalizationSlamToolbox: Incorrect "
+            "number of arguments for map starting pose. Must be in format: "
+            "[x, y, theta]. Starting at the origin");
+          pose.x = 0.;
+          pose.y = 0.;
+          pose.theta = 0.;
+        } else {
+          pose.x = read_pose[0];
+          pose.y = read_pose[1];
+          pose.theta = read_pose[2];
+        }
       }
     } else if (map_start_at_dock.get_type() != rclcpp::ParameterType::PARAMETER_NOT_SET) {
       start_at_dock = map_start_at_dock.get<bool>();
@@ -1059,16 +1083,19 @@ bool SlamToolbox::deserializePoseGraphCallback(
   switch (req->match_type) {
     case procType::START_AT_FIRST_NODE:
       processor_type_ = PROCESS_FIRST_NODE;
+      std::cout << "PROCESS_FIRST_NODE" << std::endl;
       break;
     case procType::START_AT_GIVEN_POSE:
       processor_type_ = PROCESS_NEAR_REGION;
       process_near_pose_ = std::make_unique<Pose2>(req->initial_pose.x,
           req->initial_pose.y, req->initial_pose.theta);
+      std::cout << "PROCESS_NEAR_REGION" << std::endl;
       break;
     case procType::LOCALIZE_AT_POSE:
       processor_type_ = PROCESS_LOCALIZATION;
       process_near_pose_ = std::make_unique<Pose2>(req->initial_pose.x,
           req->initial_pose.y, req->initial_pose.theta);
+      std::cout << "PROCESS_LOCALIZATION" << std::endl;
       break;
     default:
       RCLCPP_FATAL(get_logger(),

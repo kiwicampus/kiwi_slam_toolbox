@@ -37,7 +37,8 @@ void LocalizationSlamToolbox::loadPoseGraphByParams()
   std::string filename;
   geometry_msgs::msg::Pose2D pose;
   bool dock = false;
-  if (shouldStartWithPoseGraph(filename, pose, dock)) {
+  bool offset_map = false;
+  if (shouldStartWithPoseGraph(filename, pose, dock, offset_map)) {
     std::shared_ptr<slam_toolbox::srv::DeserializePoseGraph::Request> req =
       std::make_shared<slam_toolbox::srv::DeserializePoseGraph::Request>();
     std::shared_ptr<slam_toolbox::srv::DeserializePoseGraph::Response> resp =
