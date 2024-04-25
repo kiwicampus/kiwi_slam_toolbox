@@ -129,7 +129,8 @@ protected:
     karto::Pose2 & karto_pose);
   bool shouldStartWithPoseGraph(
     std::string & filename, geometry_msgs::msg::Pose2D & pose,
-    bool & start_at_dock);
+    bool & start_at_dock,
+    bool & offset_map);
   bool shouldProcessScan(
     const sensor_msgs::msg::LaserScan::ConstSharedPtr & scan,
     const karto::Pose2 & pose);
@@ -173,7 +174,7 @@ protected:
   double resolution_;
   double position_covariance_scale_;
   double yaw_covariance_scale_;
-  bool first_measurement_, enable_interactive_mode_;
+  bool first_measurement_, enable_interactive_mode_, map_start_with_map_offset_;
 
   // Book keeping
   std::unique_ptr<mapper_utils::SMapper> smapper_;
