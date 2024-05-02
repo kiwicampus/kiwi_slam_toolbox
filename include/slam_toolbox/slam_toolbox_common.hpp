@@ -43,6 +43,7 @@
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 
 #include "pluginlib/class_loader.hpp"
 
@@ -157,6 +158,7 @@ protected:
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::MapMetaData>> sstm_;
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<
       geometry_msgs::msg::PoseWithCovarianceStamped>> pose_pub_;
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Odometry>> odom_pub_;
   std::shared_ptr<rclcpp::Service<nav_msgs::srv::GetMap>> ssMap_;
   std::shared_ptr<rclcpp::Service<slam_toolbox::srv::Pause>> ssPauseMeasurements_;
   std::shared_ptr<rclcpp::Service<slam_toolbox::srv::SerializePoseGraph>> ssSerialize_;
