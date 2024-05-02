@@ -149,6 +149,7 @@ CallbackReturn SlamToolbox::on_activate(const rclcpp_lifecycle::State &)
   sst_->on_activate();
   sstm_->on_activate();
   pose_pub_->on_activate();
+  odom_pub_->on_activate();
   reprocessing_transform_.setIdentity();
 
   double transform_publish_period = 0.05;
@@ -184,6 +185,7 @@ CallbackReturn SlamToolbox::on_deactivate(const rclcpp_lifecycle::State &)
   sst_->on_deactivate();
   sstm_->on_deactivate();
   pose_pub_->on_deactivate();
+  odom_pub_->on_deactivate();
 
   // reset interfaces
   scan_filter_.reset();
@@ -195,6 +197,7 @@ CallbackReturn SlamToolbox::on_deactivate(const rclcpp_lifecycle::State &)
   sstm_.reset();
   sst_.reset();
   pose_pub_.reset();
+  odom_pub_.reset();
   ssReset_.reset();
 
   if (use_lifecycle_manager_) {
@@ -265,6 +268,7 @@ SlamToolbox::~SlamToolbox()
   sstm_.reset();
   sst_.reset();
   pose_pub_.reset();
+  odom_pub_.reset();
   ssReset_.reset();
 
   tfB_.reset();
@@ -427,6 +431,8 @@ void SlamToolbox::setROSInterfaces()
 {
   pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
     "pose", 10);
+  odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
+    "slam_odom", 10);
   sst_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
     map_name_, rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
   sstm_ = this->create_publisher<nav_msgs::msg::MapMetaData>(
@@ -707,6 +713,36 @@ tf2::Stamped<tf2::Transform> SlamToolbox::setTransformFromPoses(
 
     odom_to_map_msg = tf_->transform(base_to_map_msg, odom_frame_);
     tf2::fromMsg(odom_to_map_msg, odom_to_map);
+
+    geometry_msgs::msg::TransformStamped map_to_base_msg;
+
+    map_to_base_msg.transform.translation.x = base_to_map.inverse().getOrigin().getX();
+    map_to_base_msg.transform.translation.y = base_to_map.inverse().getOrigin().getY();
+    map_to_base_msg.transform.translation.z = base_to_map.inverse().getOrigin().getZ();
+    map_to_base_msg.transform.rotation = tf2::toMsg(base_to_map.inverse().getRotation());
+
+    // Create the odometry message
+    nav_msgs::msg::Odometry odom_msg;
+    odom_msg.header.stamp = base_to_map_msg.header.stamp;
+    odom_msg.header.frame_id = "map";
+    odom_msg.child_frame_id = "base_link";
+
+    // Set the position
+    odom_msg.pose.pose.position.x = map_to_base_msg.transform.translation.x;
+    odom_msg.pose.pose.position.y = map_to_base_msg.transform.translation.y;
+    odom_msg.pose.pose.position.z = map_to_base_msg.transform.translation.z;
+    odom_msg.pose.pose.orientation = map_to_base_msg.transform.rotation;
+    // Here we assume zero velocity; in a real application, this should be measured or estimated
+    odom_msg.twist.twist.linear.x = 0.0;
+    odom_msg.twist.twist.linear.y = 0.0;
+    odom_msg.twist.twist.linear.z = 0.0;
+    odom_msg.twist.twist.angular.x = 0.0;
+    odom_msg.twist.twist.angular.y = 0.0;
+    odom_msg.twist.twist.angular.z = 0.0;
+
+    // Publish the odometry message
+    odom_pub_->publish(odom_msg);
+
   } catch (tf2::TransformException & e) {
     RCLCPP_ERROR(get_logger(), "Transform from base_link to odom failed: %s",
       e.what());
@@ -825,6 +861,9 @@ LocalizedRangeScan * SlamToolbox::addScan(
   Pose2 & odom_pose)
 /*****************************************************************************/
 {
+
+  std::cout << "ADD SCAN " << std::endl;
+
   // get our localized range scan
   LocalizedRangeScan * range_scan = getLocalizedRangeScan(
     laser, scan, odom_pose);
@@ -855,6 +894,7 @@ LocalizedRangeScan * SlamToolbox::addScan(
     processed = smapper_->getMapper()->ProcessAgainstNodesNearBy(
       range_scan, false, &covariance);
     update_reprocessing_transform = true;
+    std::cout << "RETURNING TO PROCESS" << std::endl;
     processor_type_ = PROCESS;
   } else {
     RCLCPP_FATAL(get_logger(),
