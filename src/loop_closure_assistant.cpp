@@ -90,21 +90,25 @@ void LoopClosureAssistant::processInteractiveFeedback(const
   visualization_msgs::msg::InteractiveMarkerFeedback::ConstSharedPtr feedback)
 /*****************************************************************************/
 {
+
+  std::cout << feedback->event_type << std::endl;
+
   if (processor_type_ != PROCESS)
   {
     RCLCPP_ERROR_THROTTLE(
-      logger_, *clock_, 5000,
+      logger_, *clock_, 1,
       "Interactive mode is invalid outside processing mode.");
     return;
   }
 
   const int id = std::stoi(feedback->marker_name, nullptr, 10);
-
+std::cout << feedback->event_type << std::endl;
   // was depressed, something moved, and now released
   if (feedback->event_type ==
       visualization_msgs::msg::InteractiveMarkerFeedback::MOUSE_UP &&
       feedback->mouse_point_valid)
   {
+    std::cout << "PRESSSION" << std::endl;
     addMovedNodes(id, Eigen::Vector3d(feedback->mouse_point.x,
       feedback->mouse_point.y, tf2::getYaw(feedback->pose.orientation)));
   }
@@ -113,6 +117,7 @@ void LoopClosureAssistant::processInteractiveFeedback(const
   if (feedback->event_type ==
       visualization_msgs::msg::InteractiveMarkerFeedback::POSE_UPDATE)
   {
+    std::cout << "MOVIING" << std::endl;
     // get scan
     sensor_msgs::msg::LaserScan scan = scan_holder_->getCorrectedScan(id);
 
@@ -132,6 +137,8 @@ void LoopClosureAssistant::processInteractiveFeedback(const
     tf2::convert(feedback->pose.orientation, msg_quat);
     quat *= msg_quat;
     quat.normalize();
+  
+    std::cout << "JIC" << std::endl;
 
     // create correct transform
     tf2::Transform transform;
@@ -179,6 +186,9 @@ void LoopClosureAssistant::publishGraph()
   if (!localization_vertices.empty()) {
     first_localization_id = localization_vertices.front().vertex->GetObject()->GetUniqueId();
   }
+  else{
+    std::cout << "vertex empty mdfck" << std::endl;
+  }
 
   visualization_msgs::msg::MarkerArray marray;
 
@@ -200,6 +210,12 @@ void LoopClosureAssistant::publishGraph()
       m.pose.position.y = pose.GetY();
 
       if (interactive_mode && enable_interactive_mode_) {
+
+        std::cout << "WAAAKKKIII WAKI" << std::endl;
+
+        
+        std::cout << "WAAAKKKIII WAKI" << std::endl;
+
         visualization_msgs::msg::InteractiveMarker int_marker =
           vis_utils::toInteractiveMarker(m, 0.3, clock_);
         interactive_server_->insert(int_marker,
