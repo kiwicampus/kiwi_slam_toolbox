@@ -1022,6 +1022,8 @@ void SlamToolbox::loadSerializedPoseGraph(
 
   solver_->Reset();
 
+  std::cout << mapper->GetAllProcessedScans().size() << "gonorrea " << std::endl;
+
   // add the nodes and constraints to the optimizer
   VerticeMap mapper_vertices = mapper->GetGraph()->GetVertices();
   VerticeMap::iterator vertex_map_it = mapper_vertices.begin();
