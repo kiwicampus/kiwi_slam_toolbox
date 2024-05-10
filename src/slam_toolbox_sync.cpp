@@ -96,6 +96,11 @@ void SynchronousSlamToolbox::laserCallback(
   sensor_msgs::msg::LaserScan::ConstSharedPtr scan)
 /*****************************************************************************/
 {
+
+  if(true){
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 60000, "Not processing incomming scan");
+    return;
+  }
   // store scan header
   scan_header = scan->header;
   // no odom info
