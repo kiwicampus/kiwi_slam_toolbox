@@ -81,6 +81,8 @@ public:
   CallbackReturn on_cleanup(const rclcpp_lifecycle::State &) override;
   CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state) override;
 
+  sensor_msgs::msg::LaserScan convertToLaserScan(karto::LocalizedRangeScan *lrs);
+
 protected:
   // threads
   void publishVisualizations();

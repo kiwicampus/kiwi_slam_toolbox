@@ -108,7 +108,6 @@ std::cout << feedback->event_type << std::endl;
       visualization_msgs::msg::InteractiveMarkerFeedback::MOUSE_UP &&
       feedback->mouse_point_valid)
   {
-    std::cout << "PRESSSION" << std::endl;
     addMovedNodes(id, Eigen::Vector3d(feedback->mouse_point.x,
       feedback->mouse_point.y, tf2::getYaw(feedback->pose.orientation)));
   }
@@ -117,7 +116,6 @@ std::cout << feedback->event_type << std::endl;
   if (feedback->event_type ==
       visualization_msgs::msg::InteractiveMarkerFeedback::POSE_UPDATE)
   {
-    std::cout << "MOVIING" << std::endl;
     // get scan
     sensor_msgs::msg::LaserScan scan = scan_holder_->getCorrectedScan(id);
 
@@ -138,8 +136,6 @@ std::cout << feedback->event_type << std::endl;
     quat *= msg_quat;
     quat.normalize();
   
-    std::cout << "JIC" << std::endl;
-
     // create correct transform
     tf2::Transform transform;
     transform.setOrigin(tf2::Vector3(feedback->pose.position.x,
@@ -186,9 +182,6 @@ void LoopClosureAssistant::publishGraph()
   if (!localization_vertices.empty()) {
     first_localization_id = localization_vertices.front().vertex->GetObject()->GetUniqueId();
   }
-  else{
-    std::cout << "vertex empty mdfck" << std::endl;
-  }
 
   visualization_msgs::msg::MarkerArray marray;
 
@@ -210,11 +203,6 @@ void LoopClosureAssistant::publishGraph()
       m.pose.position.y = pose.GetY();
 
       if (interactive_mode && enable_interactive_mode_) {
-
-        std::cout << "WAAAKKKIII WAKI" << std::endl;
-
-        
-        std::cout << "WAAAKKKIII WAKI" << std::endl;
 
         visualization_msgs::msg::InteractiveMarker int_marker =
           vis_utils::toInteractiveMarker(m, 0.3, clock_);

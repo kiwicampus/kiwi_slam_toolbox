@@ -139,6 +139,46 @@ CallbackReturn SlamToolbox::on_configure(const rclcpp_lifecycle::State &)
   return CallbackReturn::SUCCESS;
 }
 
+sensor_msgs::msg::LaserScan SlamToolbox::convertToLaserScan(karto::LocalizedRangeScan *lrs)
+{
+  sensor_msgs::msg::LaserScan scan;
+
+  if (lrs == nullptr) {
+      RCLCPP_ERROR(rclcpp::get_logger("SlamToolbox"), "LocalizedRangeScan pointer is null");
+      return scan;
+  }
+
+  auto laserFinder = lrs->GetLaserRangeFinder();
+  if (laserFinder == nullptr) {
+      RCLCPP_ERROR(rclcpp::get_logger("SlamToolbox"), "LaserRangeFinder pointer is null");
+      return scan;
+  }
+
+  // Set frame ID and timestamp
+  scan.header.frame_id = "laser_link";
+  scan.header.stamp = rclcpp::Time();
+
+  // Set scan parameters from the LaserRangeFinder
+  scan.angle_min = laserFinder->GetMinimumAngle();
+  scan.angle_max = laserFinder->GetMaximumAngle();
+  scan.angle_increment = laserFinder->GetAngularResolution();
+  scan.time_increment = 0.00011;  // Time between measurements [seconds] - if available
+  scan.scan_time = 0.09;       // Time between scans [seconds] - adjust as necessary
+  scan.range_min = laserFinder->GetMinimumRange();
+  scan.range_max = laserFinder->GetMaximumRange();
+
+  // Get number of readings and range readings from LocalizedRangeScan
+  int num_readings = lrs->GetNumberOfRangeReadings(); // Assuming such a method exists
+  kt_double* range_data = lrs->GetRangeReadings();
+
+  scan.ranges.resize(num_readings);
+  for (int i = 0; i < num_readings; ++i) {
+      scan.ranges[i] = range_data[i];
+  }
+
+  return scan;
+}
+
 /*****************************************************************************/
 CallbackReturn SlamToolbox::on_activate(const rclcpp_lifecycle::State &)
 /*****************************************************************************/
@@ -851,7 +891,7 @@ LocalizedRangeScan * SlamToolbox::addScan(
   PosedScan & scan_w_pose)
 /*****************************************************************************/
 {
-  return addScan(laser, scan_w_pose.scan, scan_w_pose.pose);
+      return addScan(laser, scan_w_pose.scan, scan_w_pose.pose);
 }
 
 /*****************************************************************************/
@@ -1022,7 +1062,7 @@ void SlamToolbox::loadSerializedPoseGraph(
 
   solver_->Reset();
 
-  std::cout << mapper->GetAllProcessedScans().size() << "gonorrea " << std::endl;
+  auto processed_scans = mapper->GetAllProcessedScans();
 
   // add the nodes and constraints to the optimizer
   VerticeMap mapper_vertices = mapper->GetGraph()->GetVertices();
@@ -1079,6 +1119,30 @@ void SlamToolbox::loadSerializedPoseGraph(
       " Unable to register sensor.");
   }
 
+  try{
+    // Convert and add scans
+    for (const auto& localized_scan : processed_scans) {
+      if (localized_scan) {
+        auto lidar_scan_msg = convertToLaserScan(localized_scan); // Ensure this function is implemented
+        scan_holder_->addScan(lidar_scan_msg); // Make sure scan_holder_ is properly initialized and ready
+      }
+    }
+  } catch (const karto::Exception& e) {
+    // Handle specific Karto exceptions here
+    std::cout << "Karto exception caught: " << e.GetErrorMessage() << std::endl;
+    exit(-1);
+  } catch (const std::exception& e) {
+    // Handle general exceptions
+    std::cout << "Standard exception caught: " << e.what() << std::endl;
+    exit(-1);
+  } catch (...) {
+    // Handle all other types of exceptions
+    std::cout << "Unknown exception caught during processing of scans." << std::endl;
+  }
+
+  std::cout << "RETURNING TO PROCESS WITH DATA" << std::endl;
+  processor_type_ = PROCESS;
+
   solver_->Compute();
 }
 
@@ -1119,6 +1183,14 @@ bool SlamToolbox::deserializePoseGraphCallback(
 
   loadSerializedPoseGraph(mapper, dataset);
   updateMap();
+
+  if(true){
+    process_near_pose_.reset(nullptr);
+    std::cout << "RETURNING TO PROCESS" << std::endl;
+    processor_type_ = PROCESS;
+
+    return true;
+  }
 
   first_measurement_ = true;
   boost::mutex::scoped_lock l(pose_mutex_);
