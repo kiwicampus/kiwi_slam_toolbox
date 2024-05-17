@@ -90,6 +90,7 @@ protected:
   void setParams();
   void setSolver();
   void setROSInterfaces();
+  sensor_msgs::msg::LaserScan convertToLaserScan(karto::LocalizedRangeScan *lrs);
 
   // callbacks
   virtual void laserCallback(sensor_msgs::msg::LaserScan::ConstSharedPtr scan) = 0;
@@ -176,7 +177,7 @@ protected:
   double resolution_;
   double position_covariance_scale_;
   double yaw_covariance_scale_;
-  bool first_measurement_, enable_interactive_mode_, map_start_with_map_offset_;
+  bool first_measurement_, enable_interactive_mode_, map_start_with_map_offset_, enable_edition_mode_;
 
   // Book keeping
   std::unique_ptr<mapper_utils::SMapper> smapper_;
