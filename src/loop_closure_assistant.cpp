@@ -186,9 +186,9 @@ void LoopClosureAssistant::publishGraph()
   if (!localization_vertices.empty()) {
     first_localization_id = localization_vertices.front().vertex->GetObject()->GetUniqueId();
   }
-  else{
-    std::cout << "vertex empty mdfck" << std::endl;
-  }
+  // else{
+  //   // std::cout << "vertex empty mdfck" << std::endl;
+  // }
 
   visualization_msgs::msg::MarkerArray marray;
 

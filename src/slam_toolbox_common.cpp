@@ -918,7 +918,7 @@ LocalizedRangeScan * SlamToolbox::addScan(
 /*****************************************************************************/
 {
 
-  std::cout << "ADD SCAN " << std::endl;
+  // std::cout << "ADD SCAN " << std::endl;
 
   // get our localized range scan
   LocalizedRangeScan * range_scan = getLocalizedRangeScan(
@@ -971,7 +971,7 @@ LocalizedRangeScan * SlamToolbox::addScan(
 
     publishPose(range_scan->GetCorrectedPose(), covariance, scan->header.stamp);
 
-    std::cout << "Pose popped " << std::endl;
+    // std::cout << "Pose popped " << std::endl;
 
   } else {
     delete range_scan;
@@ -1192,6 +1192,13 @@ bool SlamToolbox::deserializePoseGraphCallback(
 
   first_measurement_ = true;
   boost::mutex::scoped_lock l(pose_mutex_);
+  
+  if(enable_edition_mode_)
+  {
+    std::cout << "RETURNING TO PROCESS" << std::endl;
+    processor_type_ = PROCESS;
+    return true;
+  }
   switch (req->match_type) {
     case procType::START_AT_FIRST_NODE:
       processor_type_ = PROCESS_FIRST_NODE;

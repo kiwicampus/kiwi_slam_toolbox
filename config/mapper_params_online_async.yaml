@@ -1,6 +1,6 @@
 slam_toolbox:
   ros__parameters:
-
+    use_sim_time: true
     # Plugin params
     solver_plugin: solver_plugins::CeresSolver
     ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
@@ -12,16 +12,16 @@ slam_toolbox:
     # ROS Parameters
     odom_frame: odom
     map_frame: map
-    base_frame: base_footprint
-    scan_topic: /scan
+    base_frame: base_link
+    scan_topic: /scan_filtered_bag
     use_map_saver: true
     mode: mapping #localization
 
     # if you'd like to immediately start continuing a map at a given pose
     # or at the dock, but they are mutually exclusive, if pose is given
     # will use pose
-    #map_file_name: test_steve
-    # map_start_pose: [0.0, 0.0, 0.0]
+    map_file_name: /workspace/rover/ros2/ros2bags/pose_graph
+    map_start_with_map_offset: true
     #map_start_at_dock: true
 
     debug_logging: false
