@@ -1104,21 +1104,22 @@ void SlamToolbox::loadSerializedPoseGraph(
     if (*edges_it != nullptr) {
 
       if(enable_edition_mode_){
+        double factor = 10000000.0;
         karto::LinkInfo * pLinkInfo = (karto::LinkInfo *)((*edges_it)->GetLabel());
         Pose2 pose1 = pLinkInfo->GetPose1();
         Pose2 pose2 = pLinkInfo->GetPose2();
         Matrix3 covariance = pLinkInfo->GetCovariance();
 
         karto::Matrix3 covariance2;
-        covariance2(0, 0) = 10000000.0;
-        covariance2(0, 1) = 0.0;
-        covariance2(0, 2) = 0.0;
-        covariance2(1, 0) = 0.0;
-        covariance2(1, 1) = 10000000.0;
-        covariance2(1, 2) = 0.0;
-        covariance2(2, 0) = 0.0;
-        covariance2(2, 1) = 0.0;
-        covariance2(2, 2) = 10000000.0;
+        covariance2(0, 0) = covariance(0, 0) * factor;
+        covariance2(0, 1) = covariance(0, 1) * factor;
+        covariance2(0, 2) = covariance(0, 2) * factor;
+        covariance2(1, 0) = covariance(1, 0) * factor;
+        covariance2(1, 1) = covariance(1, 1) * factor;
+        covariance2(1, 2) = covariance(1, 2) * factor;
+        covariance2(2, 0) = covariance(2, 0) * factor;
+        covariance2(2, 1) = covariance(2, 1) * factor;
+        covariance2(2, 2) = covariance(2, 2) * factor;
 
         pLinkInfo->Update(pose1, pose2, covariance2);
       }
@@ -1163,32 +1164,60 @@ void SlamToolbox::loadSerializedPoseGraph(
     karto::Pose2 final_pose = final_scan->GetCorrectedPose();
     karto::Pose2 initial_pose = initial_scan->GetCorrectedPose();
 
-    // Calculate the transformation (mean difference)
-    const karto::Pose2 mean_diff(212.0,
-                           89.0,
-                           final_pose.GetHeading());
+
+    std::cout << "POS I " << initial_pose.GetPosition() << std::endl;
+    std::cout << "HEAD I " << initial_pose.GetHeading() << std::endl;
+
+    std::cout << "POS F " << final_pose.GetPosition() << std::endl;
+    std::cout << "HEAD F " << final_pose.GetHeading() << std::endl;
+
+    double i_p_x = 30.68;
+    double i_p_y = 75.73;
+    double i_q_x = 0.0;
+    double i_q_y = 0.0;
+    double i_q_z = 0.51039535354198;
+    double i_q_w = 0.8599398717833429;
+
+    tf2::Quaternion q2(i_q_x, i_q_y, i_q_z, i_q_w);
+
+    // Convert the quaternion to yaw
+    double i_roll, i_pitch, i_yaw;
+    tf2::Matrix3x3(q2).getRPY(i_roll, i_pitch, i_yaw);
+
+    double p_x = 212.68217;
+    double p_y = 89.1603347;
+    double q_x = 0.0;
+    double q_y = 0.0;
+    double q_z = 0.8791611026042621;
+    double q_w = 0.4765246642805157;
+
+    tf2::Quaternion q(q_x, q_y, q_z, q_w);
+
+    // Convert the quaternion to yaw
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+    // best pose for match
+    // const karto::Pose2 mean_diff(p_x-i_p_x,p_y-i_p_y, yaw-i_yaw);
+
+    const karto::Pose2 mean_diff(p_x,p_y, final_pose.GetHeading());
+
+    std::cout << "POS 2 " << mean_diff.GetPosition() << std::endl;
+    std::cout << "HEAD 2 " << mean_diff.GetHeading() << std::endl;
 
     // Define a high covariance matrix
     karto::Matrix3 covariance;
-    covariance(0, 0) = 500.0;
+    covariance(0, 0) = 1.0;
     covariance(0, 1) = 0.0;
     covariance(0, 2) = 0.0;
     covariance(1, 0) = 0.0;
-    covariance(1, 1) = 500.0;
+    covariance(1, 1) = 1.0;
     covariance(1, 2) = 0.0;
     covariance(2, 0) = 0.0;
     covariance(2, 1) = 0.0;
-    covariance(2, 2) = 500.0;
-
+    covariance(2, 2) = 1.0;
 
     final_scan->SetSensorPose(mean_diff);
-
-
-    // // Add the last scan as a vertex to the graph
-    // Vertex<karto::LocalizedRangeScan>* last_vertex = mapper->GetGraph()->AddVertex(final_scan);
-    // if (final_scan != nullptr) {
-    //   solver_->AddNode(last_vertex);
-    // }
 
     // Create a new edge between the initial and last scans
     bool isNewEdge = true;
@@ -1203,66 +1232,8 @@ void SlamToolbox::loadSerializedPoseGraph(
     }
   }
 
-  // mapper->CorrectPoses();
-
-  // if (!processedScans.empty()) {
-
-  //   karto::LocalizedRangeScan* target_scan = nullptr;
-
-  //   // Find the scan with id = 1
-  //   for (auto scan : processedScans) {
-  //     if (scan->GetStateId() == 1) {
-  //       target_scan = scan;
-  //       break;
-  //     }
-  //   }
-
-  //   // Add link between the last node and the initial node (id 0)
-
-  //   karto::LocalizedRangeScan* initial_scan = processedScans.front();
-
-  //   karto::Pose2 initial_pose = initial_scan->GetCorrectedPose();
-  //   karto::Pose2 last_pose = target_scan->GetCorrectedPose();
-
-  //   // Calculate the transformation (mean difference)
-  //   karto::Pose2 mean_diff(last_pose.GetX() - initial_pose.GetX(),
-  //                          last_pose.GetY() - initial_pose.GetY(),
-  //                          last_pose.GetHeading() - initial_pose.GetHeading());
-
-  //   // Define a high covariance matrix
-  //   karto::Matrix3 covariance3;
-  //   covariance3(1, 2) = 0.0;
-  //   covariance3(2, 0) = 0.0;
-  //   covariance3(2, 1) = 0.0;
-  //   covariance3(2, 2) = 0.0000000012;
-
-  //   // Create a new edge between the initial and last scans
-  //   bool isNewEdge = false;
-  //   Edge<karto::LocalizedRangeScan>* new_edge = mapper->GetGraph()->AddEdge(target_scan, initial_scan, isNewEdge);
-    
-  //   if (new_edge && isNewEdge) {
-  //     new_edge->SetLabel(new karto::LinkInfo(target_scan->GetCorrectedPose(), mean_diff, covariance3));
-  //     solver_->AddConstraint(new_edge);
-  //   }
-  // }
-//   covariance3(1, 0) = 0.0;
-  //   covariance3(1, 1) = 0.0000000001;
-  //   covariance3(1, 2) = 0.0;
-  //   covariance3(2, 0) = 0.0;
-  //   covariance3(2, 1) = 0.0;
-  //   covariance3(2, 2) = 0.0000000012;
-
-  //   // Create a new edge between the initial and last scans
-  //   bool isNewEdge = false;
-  //   Edge<karto::LocalizedRangeScan>* new_edge = mapper->GetGraph()->AddEdge(target_scan, initial_scan, isNewEdge);
-    
-  //   if (new_edge && isNewEdge) {
-  //     new_edge->SetLabel(new karto::LinkInfo(target_scan->GetCorrectedPose(), mean_diff, covariance3));
-  //     solver_->AddConstraint(new_edge);
-  //   }
-  // }
-
   mapper->SetScanSolver(solver_.get());
+  // mapper->CorrectPoses();
 
   // move the memory to our working dataset
   smapper_->setMapper(mapper.release());
@@ -1286,26 +1257,17 @@ void SlamToolbox::loadSerializedPoseGraph(
     exit(-1);
   }
 
-  // // create a current laser sensor
-  // LaserRangeFinder * laser2 =
-  //   dynamic_cast<LaserRangeFinder *>(
-  //   dataset_->GetLasers()[0]);
-  // Sensor * pSensor2 = dynamic_cast<Sensor *>(laser2);
-  // if (pSensor2) {
-  //   SensorManager::GetInstance()->RegisterSensor(pSensor2);
-  //   lasers_.clear();
-  // } else {
-  //   RCLCPP_ERROR(get_logger(), "Invalid sensor pointer in dataset."
-  //     " Unable to register sensor.");
-  // }
-
   // Process each LocalizedRangeScan to create and add LaserScan messages
   for(auto scan : processedScans) {
     sensor_msgs::msg::LaserScan laser_scan = SlamToolbox::convertToLaserScan(scan);
     scan_holder_->addScan(laser_scan);
   }
   solver_->Compute();
-  // mapper->CorrectPoses();
+  // closure_assistant_->addMovedNodes(815, Eigen::Vector3d(215.0, 89.0, 0.0));
+  // smapper_->getMapper()->CorrectPoses();
+  // closure_assistant_->publishGraph();
+  // closure_assistant_->clearMovedNodes();
+
   std::cout << "solver ends computing" << std::endl;
 }
 
