@@ -1102,16 +1102,172 @@ void SlamToolbox::loadSerializedPoseGraph(
   EdgeVector::iterator edges_it = mapper_edges.begin();
   for (edges_it; edges_it != mapper_edges.end(); ++edges_it) {
     if (*edges_it != nullptr) {
+
+      if(enable_edition_mode_){
+        karto::LinkInfo * pLinkInfo = (karto::LinkInfo *)((*edges_it)->GetLabel());
+        Pose2 pose1 = pLinkInfo->GetPose1();
+        Pose2 pose2 = pLinkInfo->GetPose2();
+        Matrix3 covariance = pLinkInfo->GetCovariance();
+
+        karto::Matrix3 covariance2;
+        covariance2(0, 0) = 10000000.0;
+        covariance2(0, 1) = 0.0;
+        covariance2(0, 2) = 0.0;
+        covariance2(1, 0) = 0.0;
+        covariance2(1, 1) = 10000000.0;
+        covariance2(1, 2) = 0.0;
+        covariance2(2, 0) = 0.0;
+        covariance2(2, 1) = 0.0;
+        covariance2(2, 2) = 10000000.0;
+
+        pLinkInfo->Update(pose1, pose2, covariance2);
+      }
+
       solver_->AddConstraint(*edges_it);
     }
   }
+
+  dataset_.reset(dataset.release());
+
+  // create a current laser sensor
+  LaserRangeFinder * laser =
+    dynamic_cast<LaserRangeFinder *>(
+    dataset_->GetLasers()[0]);
+  Sensor * pSensor = dynamic_cast<Sensor *>(laser);
+  if (pSensor) {
+    SensorManager::GetInstance()->RegisterSensor(pSensor);
+    lasers_.clear();
+  } else {
+    RCLCPP_ERROR(get_logger(), "Invalid sensor pointer in dataset."
+      " Unable to register sensor.");
+  }
+
+
+
+  if (!processedScans.empty() && enable_edition_mode_) {
+
+    karto::LocalizedRangeScan* initial_scan = nullptr;
+
+    // Find the scan with id = 1
+    for (auto scan : processedScans) {
+      if (scan->GetStateId() == 1) {
+        initial_scan = scan;
+        break;
+      }
+    }
+
+    // Add link between the last node and the initial node (id 0)
+
+    karto::LocalizedRangeScan* final_scan = processedScans.back();
+
+    karto::Pose2 final_pose = final_scan->GetCorrectedPose();
+    karto::Pose2 initial_pose = initial_scan->GetCorrectedPose();
+
+    // Calculate the transformation (mean difference)
+    const karto::Pose2 mean_diff(212.0,
+                           89.0,
+                           final_pose.GetHeading());
+
+    // Define a high covariance matrix
+    karto::Matrix3 covariance;
+    covariance(0, 0) = 500.0;
+    covariance(0, 1) = 0.0;
+    covariance(0, 2) = 0.0;
+    covariance(1, 0) = 0.0;
+    covariance(1, 1) = 500.0;
+    covariance(1, 2) = 0.0;
+    covariance(2, 0) = 0.0;
+    covariance(2, 1) = 0.0;
+    covariance(2, 2) = 500.0;
+
+
+    final_scan->SetSensorPose(mean_diff);
+
+
+    // // Add the last scan as a vertex to the graph
+    // Vertex<karto::LocalizedRangeScan>* last_vertex = mapper->GetGraph()->AddVertex(final_scan);
+    // if (final_scan != nullptr) {
+    //   solver_->AddNode(last_vertex);
+    // }
+
+    // Create a new edge between the initial and last scans
+    bool isNewEdge = true;
+      std::cout << "im almost in" << std::endl;
+    Edge<karto::LocalizedRangeScan>* new_edge = mapper->GetGraph()->AddEdge(initial_scan, final_scan, isNewEdge);
+    
+
+    if (new_edge && isNewEdge) {
+      std::cout << "im in" << std::endl;
+      new_edge->SetLabel(new karto::LinkInfo(initial_scan->GetCorrectedPose(), final_scan->GetCorrectedAt(mean_diff), covariance));
+      solver_->AddConstraint(new_edge);
+    }
+  }
+
+  // mapper->CorrectPoses();
+
+  // if (!processedScans.empty()) {
+
+  //   karto::LocalizedRangeScan* target_scan = nullptr;
+
+  //   // Find the scan with id = 1
+  //   for (auto scan : processedScans) {
+  //     if (scan->GetStateId() == 1) {
+  //       target_scan = scan;
+  //       break;
+  //     }
+  //   }
+
+  //   // Add link between the last node and the initial node (id 0)
+
+  //   karto::LocalizedRangeScan* initial_scan = processedScans.front();
+
+  //   karto::Pose2 initial_pose = initial_scan->GetCorrectedPose();
+  //   karto::Pose2 last_pose = target_scan->GetCorrectedPose();
+
+  //   // Calculate the transformation (mean difference)
+  //   karto::Pose2 mean_diff(last_pose.GetX() - initial_pose.GetX(),
+  //                          last_pose.GetY() - initial_pose.GetY(),
+  //                          last_pose.GetHeading() - initial_pose.GetHeading());
+
+  //   // Define a high covariance matrix
+  //   karto::Matrix3 covariance3;
+  //   covariance3(1, 2) = 0.0;
+  //   covariance3(2, 0) = 0.0;
+  //   covariance3(2, 1) = 0.0;
+  //   covariance3(2, 2) = 0.0000000012;
+
+  //   // Create a new edge between the initial and last scans
+  //   bool isNewEdge = false;
+  //   Edge<karto::LocalizedRangeScan>* new_edge = mapper->GetGraph()->AddEdge(target_scan, initial_scan, isNewEdge);
+    
+  //   if (new_edge && isNewEdge) {
+  //     new_edge->SetLabel(new karto::LinkInfo(target_scan->GetCorrectedPose(), mean_diff, covariance3));
+  //     solver_->AddConstraint(new_edge);
+  //   }
+  // }
+//   covariance3(1, 0) = 0.0;
+  //   covariance3(1, 1) = 0.0000000001;
+  //   covariance3(1, 2) = 0.0;
+  //   covariance3(2, 0) = 0.0;
+  //   covariance3(2, 1) = 0.0;
+  //   covariance3(2, 2) = 0.0000000012;
+
+  //   // Create a new edge between the initial and last scans
+  //   bool isNewEdge = false;
+  //   Edge<karto::LocalizedRangeScan>* new_edge = mapper->GetGraph()->AddEdge(target_scan, initial_scan, isNewEdge);
+    
+  //   if (new_edge && isNewEdge) {
+  //     new_edge->SetLabel(new karto::LinkInfo(target_scan->GetCorrectedPose(), mean_diff, covariance3));
+  //     solver_->AddConstraint(new_edge);
+  //   }
+  // }
 
   mapper->SetScanSolver(solver_.get());
 
   // move the memory to our working dataset
   smapper_->setMapper(mapper.release());
   smapper_->configure(shared_from_this());
-  dataset_.reset(dataset.release());
+  // dataset_.reset(dataset.release());
 
   if (!smapper_->getMapper()) {
     RCLCPP_FATAL(get_logger(),
@@ -1130,18 +1286,18 @@ void SlamToolbox::loadSerializedPoseGraph(
     exit(-1);
   }
 
-  // create a current laser sensor
-  LaserRangeFinder * laser =
-    dynamic_cast<LaserRangeFinder *>(
-    dataset_->GetLasers()[0]);
-  Sensor * pSensor = dynamic_cast<Sensor *>(laser);
-  if (pSensor) {
-    SensorManager::GetInstance()->RegisterSensor(pSensor);
-    lasers_.clear();
-  } else {
-    RCLCPP_ERROR(get_logger(), "Invalid sensor pointer in dataset."
-      " Unable to register sensor.");
-  }
+  // // create a current laser sensor
+  // LaserRangeFinder * laser2 =
+  //   dynamic_cast<LaserRangeFinder *>(
+  //   dataset_->GetLasers()[0]);
+  // Sensor * pSensor2 = dynamic_cast<Sensor *>(laser2);
+  // if (pSensor2) {
+  //   SensorManager::GetInstance()->RegisterSensor(pSensor2);
+  //   lasers_.clear();
+  // } else {
+  //   RCLCPP_ERROR(get_logger(), "Invalid sensor pointer in dataset."
+  //     " Unable to register sensor.");
+  // }
 
   // Process each LocalizedRangeScan to create and add LaserScan messages
   for(auto scan : processedScans) {
@@ -1149,6 +1305,7 @@ void SlamToolbox::loadSerializedPoseGraph(
     scan_holder_->addScan(laser_scan);
   }
   solver_->Compute();
+  // mapper->CorrectPoses();
   std::cout << "solver ends computing" << std::endl;
 }
 
