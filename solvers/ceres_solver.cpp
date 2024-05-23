@@ -224,7 +224,7 @@ void CeresSolver::Compute()
     return;
   }
 
-  // populate contraint for static initial pose
+  // populate constraint for static initial pose
   if (!was_constant_set_ && first_node_ != nodes_->end() &&
       problem_->HasParameterBlock(&first_node_->second(0)) &&
       problem_->HasParameterBlock(&first_node_->second(1)) &&
@@ -366,6 +366,18 @@ void CeresSolver::AddConstraint(karto::Edge<karto::LocalizedRangeScan> * pEdge)
   Eigen::Vector3d pose2d(diff.GetX(), diff.GetY(), diff.GetHeading());
 
   karto::Matrix3 precisionMatrix = pLinkInfo->GetCovariance().Inverse();
+
+  // Print the covariance matrix and node IDs
+  karto::Matrix3 covarianceMatrix = pLinkInfo->GetCovariance();
+  std::cout << "Node1 ID: " << node1 << ", Node2 ID: " << node2 << std::endl;
+  std::cout << "Covariance Matrix: " << std::endl;
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      std::cout << covarianceMatrix(i, j) << " ";
+    }
+    std::cout << std::endl;
+  }
+
   Eigen::Matrix3d information;
   information(0, 0) = precisionMatrix(0, 0);
   information(0, 1) = information(1, 0) = precisionMatrix(0, 1);
