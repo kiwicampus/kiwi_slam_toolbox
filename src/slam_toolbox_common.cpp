@@ -1165,45 +1165,10 @@ void SlamToolbox::loadSerializedPoseGraph(
     karto::Pose2 initial_pose = initial_scan->GetCorrectedPose();
 
 
-    std::cout << "POS I " << initial_pose.GetPosition() << std::endl;
-    std::cout << "HEAD I " << initial_pose.GetHeading() << std::endl;
-
-    std::cout << "POS F " << final_pose.GetPosition() << std::endl;
-    std::cout << "HEAD F " << final_pose.GetHeading() << std::endl;
-
-    double i_p_x = 30.68;
-    double i_p_y = 75.73;
-    double i_q_x = 0.0;
-    double i_q_y = 0.0;
-    double i_q_z = 0.51039535354198;
-    double i_q_w = 0.8599398717833429;
-
-    tf2::Quaternion q2(i_q_x, i_q_y, i_q_z, i_q_w);
-
-    // Convert the quaternion to yaw
-    double i_roll, i_pitch, i_yaw;
-    tf2::Matrix3x3(q2).getRPY(i_roll, i_pitch, i_yaw);
-
     double p_x = 212.68217;
     double p_y = 89.1603347;
-    double q_x = 0.0;
-    double q_y = 0.0;
-    double q_z = 0.8791611026042621;
-    double q_w = 0.4765246642805157;
-
-    tf2::Quaternion q(q_x, q_y, q_z, q_w);
-
-    // Convert the quaternion to yaw
-    double roll, pitch, yaw;
-    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
-
-    // best pose for match
-    // const karto::Pose2 mean_diff(p_x-i_p_x,p_y-i_p_y, yaw-i_yaw);
 
     const karto::Pose2 mean_diff(p_x,p_y, final_pose.GetHeading());
-
-    std::cout << "POS 2 " << mean_diff.GetPosition() << std::endl;
-    std::cout << "HEAD 2 " << mean_diff.GetHeading() << std::endl;
 
     // Define a high covariance matrix
     karto::Matrix3 covariance;
