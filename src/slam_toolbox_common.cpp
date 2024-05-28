@@ -1072,6 +1072,27 @@ bool SlamToolbox::serializePoseGraphCallback(
 }
 
 /*****************************************************************************/
+void SlamToolbox::addEdgeBetweenNodes(
+  karto::LocalizedRangeScan* initial_scan,
+  karto::LocalizedRangeScan* current_scan,
+  std::unique_ptr<Mapper> & mapper,
+  karto::Pose2 mean_diff,
+  karto::Matrix3 covariance)
+/*****************************************************************************/
+{
+
+  // Create a new edge between the initial and current scans
+  bool isNewEdge = true;
+  Edge<karto::LocalizedRangeScan>* new_edge = mapper->GetGraph()->AddEdge(initial_scan, current_scan, isNewEdge);
+
+  if (new_edge && isNewEdge) {
+    new_edge->SetLabel(new karto::LinkInfo(initial_scan->GetCorrectedPose(), current_scan->GetCorrectedAt(mean_diff), covariance));
+    solver_->AddConstraint(new_edge);
+  }
+}
+
+
+/*****************************************************************************/
 void SlamToolbox::loadSerializedPoseGraph(
   std::unique_ptr<Mapper> & mapper,
   std::unique_ptr<Dataset> & dataset)
@@ -1184,26 +1205,39 @@ void SlamToolbox::loadSerializedPoseGraph(
 
     final_scan->SetSensorPose(mean_diff);
 
-    // Create a new edge between the initial and last scans
-    bool isNewEdge = true;
-      std::cout << "im almost in" << std::endl;
-    Edge<karto::LocalizedRangeScan>* new_edge = mapper->GetGraph()->AddEdge(initial_scan, final_scan, isNewEdge);
-    
+    addEdgeBetweenNodes(initial_scan, final_scan, mapper, mean_diff, covariance);
 
-    if (new_edge && isNewEdge) {
-      std::cout << "im in" << std::endl;
-      new_edge->SetLabel(new karto::LinkInfo(initial_scan->GetCorrectedPose(), final_scan->GetCorrectedAt(mean_diff), covariance));
-      solver_->AddConstraint(new_edge);
+    // Add link every 20 nodes from the last node
+    for (int i = processedScans.size() - 21; i >= 0; i -= 20){
+
+      std::cout << "!0" << i << std::endl;
+
+      karto::LocalizedRangeScan* target_scan = processedScans[i];
+
+      
+      double p_x_temp = target_scan->GetCorrectedPose().GetX() - 5.0;
+      double p_y_temp = target_scan->GetCorrectedPose().GetY() - 0.5;
+      const karto::Pose2 mean_diff(p_x_temp,p_y_temp, target_scan->GetCorrectedPose().GetHeading());
+
+      target_scan->SetSensorPose(mean_diff);
+
+      addEdgeBetweenNodes(initial_scan, target_scan, mapper, mean_diff, covariance);
     }
   }
 
+  std::cout << "!1" << std::endl;
+
   mapper->SetScanSolver(solver_.get());
   // mapper->CorrectPoses();
+
+  std::cout << "!2" << std::endl;
 
   // move the memory to our working dataset
   smapper_->setMapper(mapper.release());
   smapper_->configure(shared_from_this());
   // dataset_.reset(dataset.release());
+
+  std::cout << "!3" << std::endl;
 
   if (!smapper_->getMapper()) {
     RCLCPP_FATAL(get_logger(),
