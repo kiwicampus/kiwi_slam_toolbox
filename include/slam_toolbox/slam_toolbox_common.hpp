@@ -149,6 +149,14 @@ protected:
     const std::shared_ptr<slam_toolbox::srv::Pause::Request> req,
     std::shared_ptr<slam_toolbox::srv::Pause::Response> resp);
 
+  //editon
+  void addEdgeBetweenNodes(
+    karto::LocalizedRangeScan* initial_scan,
+    karto::LocalizedRangeScan* current_scan,
+    std::unique_ptr<Mapper> & mapper,
+    karto::Pose2 mean_diff,
+    karto::Matrix3 covariance);
+
   // ROS-y-ness
   std::unique_ptr<tf2_ros::Buffer> tf_;
   std::unique_ptr<tf2_ros::TransformListener> tfL_;
