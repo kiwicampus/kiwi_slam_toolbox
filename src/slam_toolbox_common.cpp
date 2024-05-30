@@ -1186,10 +1186,10 @@ void SlamToolbox::loadSerializedPoseGraph(
     karto::Pose2 initial_pose = initial_scan->GetCorrectedPose();
 
 
-    double p_x = 212.68217;
-    double p_y = 89.1603347;
+    double p_x = 361.1082424956462;
+    double p_y = 835.4159355543044;
 
-    const karto::Pose2 mean_diff(p_x,p_y, final_pose.GetHeading());
+    const karto::Pose2 mean_diff(final_pose.GetX(),final_pose.GetY(), final_pose.GetHeading());
 
     // Define a high covariance matrix
     karto::Matrix3 covariance;
@@ -1203,23 +1203,28 @@ void SlamToolbox::loadSerializedPoseGraph(
     covariance(2, 1) = 0.0;
     covariance(2, 2) = 1.0;
 
-    final_scan->SetSensorPose(mean_diff);
+    // final_scan->SetSensorPose(mean_diff);
 
     addEdgeBetweenNodes(initial_scan, final_scan, mapper, mean_diff, covariance);
 
+    std::vector<int> a;
+
+    //  a = {777, 82, 270, 112, 165, 127};
+
     // Add link every 20 nodes from the last node
-    for (int i = processedScans.size() - 21; i >= 0; i -= 20){
+    for (int i = 0 ; i < a.size(); i += 2){
 
       std::cout << "!0" << i << std::endl;
 
-      karto::LocalizedRangeScan* target_scan = processedScans[i];
+      karto::LocalizedRangeScan* target_scan = processedScans[a[i]];
+      karto::LocalizedRangeScan* initial_scan = processedScans[a[i+1]];
 
       
-      double p_x_temp = target_scan->GetCorrectedPose().GetX() - 5.0;
+      double p_x_temp = target_scan->GetCorrectedPose().GetX() - 0.0;
       double p_y_temp = target_scan->GetCorrectedPose().GetY() - 0.5;
       const karto::Pose2 mean_diff(p_x_temp,p_y_temp, target_scan->GetCorrectedPose().GetHeading());
 
-      target_scan->SetSensorPose(mean_diff);
+      // target_scan->SetSensorPose(mean_diff);
 
       addEdgeBetweenNodes(initial_scan, target_scan, mapper, mean_diff, covariance);
     }
