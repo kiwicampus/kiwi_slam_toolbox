@@ -187,6 +187,7 @@ protected:
   double position_covariance_scale_;
   double yaw_covariance_scale_;
   bool first_measurement_, enable_interactive_mode_, map_start_with_map_offset_, enable_edition_mode_;
+  std::vector<int64_t> nodes_to_link_;
 
   // Book keeping
   std::unique_ptr<mapper_utils::SMapper> smapper_;
