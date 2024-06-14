@@ -442,6 +442,12 @@ void SlamToolbox::setParams()
   }
   enable_edition_mode_ = this->get_parameter("enable_edition_mode").as_bool();
 
+  nodes_to_link_ = std::vector<int64_t>();
+  if (!this->has_parameter("nodes_to_link")) {
+    this->declare_parameter("nodes_to_link", nodes_to_link_);
+  }
+  nodes_to_link_ = this->get_parameter("nodes_to_link").as_integer_array();
+
   double tmp_val = 0.5;
   if (!this->has_parameter("transform_timeout")) {
     this->declare_parameter("transform_timeout", tmp_val);
@@ -918,8 +924,6 @@ LocalizedRangeScan * SlamToolbox::addScan(
 /*****************************************************************************/
 {
 
-  // std::cout << "ADD SCAN " << std::endl;
-
   // get our localized range scan
   LocalizedRangeScan * range_scan = getLocalizedRangeScan(
     laser, scan, odom_pose);
@@ -1207,17 +1211,13 @@ void SlamToolbox::loadSerializedPoseGraph(
 
     addEdgeBetweenNodes(initial_scan, final_scan, mapper, mean_diff, covariance);
 
-    std::vector<int> a;
-
-    //  a = {777, 82, 270, 112, 165, 127};
-
     // Add link every 20 nodes from the last node
-    for (int i = 0 ; i < a.size(); i += 2){
+    for (int i = 0 ; i < nodes_to_link_.size(); i += 2){
 
       std::cout << "!0" << i << std::endl;
 
-      karto::LocalizedRangeScan* target_scan = processedScans[a[i]];
-      karto::LocalizedRangeScan* initial_scan = processedScans[a[i+1]];
+      karto::LocalizedRangeScan* target_scan = processedScans[nodes_to_link_[i]];
+      karto::LocalizedRangeScan* initial_scan = processedScans[nodes_to_link_[i+1]];
 
       
       double p_x_temp = target_scan->GetCorrectedPose().GetX() - 0.0;
