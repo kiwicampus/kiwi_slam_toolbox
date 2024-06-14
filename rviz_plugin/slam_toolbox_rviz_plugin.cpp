@@ -48,39 +48,39 @@ SlamToolboxPlugin::SlamToolboxPlugin(QWidget * parent)
 
   bool paused_measure = false, interactive = false;
   paused_measure = ros_node_->declare_parameter(
-    "/slam_toolbox/paused_new_measurements", paused_measure);
+    "slam_toolbox/paused_new_measurements", paused_measure);
   interactive = ros_node_->declare_parameter(
-    "/slam_toolbox/interactive_mode", interactive);
+    "slam_toolbox/interactive_mode", interactive);
 
   _initialposeSub =
     ros_node_->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
-    "/initialpose", 10,
+    "initialpose", 10,
     std::bind(&SlamToolboxPlugin::InitialPoseCallback, this, std::placeholders::_1));
 
   _serialize =
     ros_node_->create_client<slam_toolbox::srv::SerializePoseGraph>(
-    "/slam_toolbox/serialize_map");
+    "slam_toolbox/serialize_map");
   _load_map =
     ros_node_->create_client<slam_toolbox::srv::DeserializePoseGraph>(
-    "/slam_toolbox/deserialize_map");
+    "slam_toolbox/deserialize_map");
   _clearChanges = ros_node_->create_client<slam_toolbox::srv::Clear>(
-    "/slam_toolbox/clear_changes");
+    "slam_toolbox/clear_changes");
   _saveChanges = ros_node_->create_client<slam_toolbox::srv::LoopClosure>(
-    "/slam_toolbox/manual_loop_closure");
+    "slam_toolbox/manual_loop_closure");
   _saveMap = ros_node_->create_client<slam_toolbox::srv::SaveMap>(
-    "/slam_toolbox/save_map");
+    "slam_toolbox/save_map");
   _clearQueue = ros_node_->create_client<slam_toolbox::srv::ClearQueue>(
-    "/slam_toolbox/clear_queue");
+    "slam_toolbox/clear_queue");
   _interactive =
     ros_node_->create_client<slam_toolbox::srv::ToggleInteractive>(
-    "/slam_toolbox/toggle_interactive_mode");
+    "slam_toolbox/toggle_interactive_mode");
   _pause_measurements = ros_node_->create_client<slam_toolbox::srv::Pause>(
-    "/slam_toolbox/pause_new_measurements");
+    "slam_toolbox/pause_new_measurements");
   _load_submap_for_merging =
     ros_node_->create_client<slam_toolbox::srv::AddSubmap>(
-    "/slam_toolbox/add_submap");
+    "slam_toolbox/add_submap");
   _merge = ros_node_->create_client<slam_toolbox::srv::MergeMaps>(
-    "/slam_toolbox/merge_submaps");
+    "slam_toolbox/merge_submaps");
 
   _vbox = new QVBoxLayout();
   _hbox1 = new QHBoxLayout();
