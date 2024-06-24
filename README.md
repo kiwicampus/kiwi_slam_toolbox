@@ -6,7 +6,7 @@ We've received feedback from users and have robots operating in the following en
 - Libraries
 - Research
 
-It is also the currently supported ROS2-SLAM library. See tutorials for working with it in [ROS2 Navigation here](https://navigation.ros.org/tutorials/docs/navigation2_with_slam.html).
+It is also the currently supported ROS2-SLAM library. See tutorials for working with it in [ROS 2 Nav2 here]([https://navigation.ros.org/tutorials/docs/navigation2_with_slam.html](https://docs.nav2.org/tutorials/docs/navigation2_with_slam.html)).
 
 ### Cite This Work
 
