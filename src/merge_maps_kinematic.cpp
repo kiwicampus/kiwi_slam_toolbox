@@ -55,6 +55,9 @@ void MergeMapsKinematic::configure()
   interactive_server_ =
     std::make_unique<interactive_markers::InteractiveMarkerServer>(
     "merge_maps_tool", shared_from_this());
+  std::string map_name = this->declare_parameter("map_name", "/map");
+  map_saver_ = std::make_unique<map_saver::MapSaver>(shared_from_this(),
+        map_name);
 }
 
 /*****************************************************************************/
