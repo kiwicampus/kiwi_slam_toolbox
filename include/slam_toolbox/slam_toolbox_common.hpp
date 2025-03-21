@@ -43,6 +43,7 @@
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 
 #include "pluginlib/class_loader.hpp"
 
@@ -53,6 +54,8 @@
 #include "slam_toolbox/get_pose_helper.hpp"
 #include "slam_toolbox/map_saver.hpp"
 #include "slam_toolbox/loop_closure_assistant.hpp"
+
+#include <tf2/LinearMath/Quaternion.h>
 
 namespace slam_toolbox
 {
@@ -89,6 +92,7 @@ protected:
   void setParams();
   void setSolver();
   void setROSInterfaces();
+  sensor_msgs::msg::LaserScan convertToLaserScan(karto::LocalizedRangeScan *lrs);
 
   // callbacks
   virtual void laserCallback(sensor_msgs::msg::LaserScan::ConstSharedPtr scan) = 0;
@@ -145,6 +149,14 @@ protected:
     const std::shared_ptr<slam_toolbox::srv::Pause::Request> req,
     std::shared_ptr<slam_toolbox::srv::Pause::Response> resp);
 
+  //edition
+  void addEdgeBetweenNodes(
+    karto::LocalizedRangeScan* initial_scan,
+    karto::LocalizedRangeScan* current_scan,
+    std::unique_ptr<Mapper> & mapper,
+    karto::Pose2 mean_diff,
+    karto::Matrix3 covariance);
+
   // ROS-y-ness
   std::unique_ptr<tf2_ros::Buffer> tf_;
   std::unique_ptr<tf2_ros::TransformListener> tfL_;
@@ -161,7 +173,6 @@ protected:
   std::shared_ptr<rclcpp::Service<slam_toolbox::srv::SerializePoseGraph>> ssSerialize_;
   std::shared_ptr<rclcpp::Service<slam_toolbox::srv::DeserializePoseGraph>> ssDesserialize_;
   std::shared_ptr<rclcpp::Service<slam_toolbox::srv::Reset>> ssReset_;
-
   // Storage for ROS parameters
   std::string odom_frame_, map_frame_, base_frame_, map_name_, scan_topic_;
   bool use_map_saver_;
@@ -174,6 +185,8 @@ protected:
   double position_covariance_scale_;
   double yaw_covariance_scale_;
   bool first_measurement_, enable_interactive_mode_;
+  bool map_start_with_map_offset_, enable_edition_mode_;
+  std::vector<int64_t> nodes_to_link_;
 
   // Book keeping
   std::unique_ptr<mapper_utils::SMapper> smapper_;
