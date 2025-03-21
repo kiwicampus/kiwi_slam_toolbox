@@ -43,6 +43,7 @@
 #include "slam_toolbox/toolbox_msgs.hpp"
 #include "slam_toolbox/laser_utils.hpp"
 #include "slam_toolbox/visualization_utils.hpp"
+#include "slam_toolbox/map_saver.hpp"
 
 using namespace toolbox_types;  // NOLINT
 using namespace karto;  // NOLINT
@@ -86,6 +87,8 @@ private:
   std::vector<std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>>> sstS_;
   std::shared_ptr<rclcpp::Service<slam_toolbox::srv::MergeMaps>> ssMap_;
   std::shared_ptr<rclcpp::Service<slam_toolbox::srv::AddSubmap>> ssSubmap_;
+  std::unique_ptr<map_saver::MapSaver> map_saver_;
+  
 
   // karto bookkeeping
   std::map<std::string, laser_utils::LaserMetadata> lasers_;
@@ -102,6 +105,8 @@ private:
   std::vector<karto::LocalizedRangeScanVector> scans_vec_;
   std::map<int, tf2::Transform> submap_marker_transform_;
   std::map<int, tf2::Transform> prev_submap_marker_transform_;
+  std::vector<Eigen::Vector2d> map_visual_offset_;
+  std::map<int, nav_msgs::msg::OccupancyGrid> submaps_;
   double resolution_;
   int num_submaps_;
 };
