@@ -144,11 +144,11 @@ void LoopClosureAssistant::processInteractiveFeedback(const
     tf2::convert(transform, msg.transform);
     msg.child_frame_id = "scan_visualization";
     msg.header.frame_id = feedback->header.frame_id;
-    msg.header.stamp = clock_->now();
+    msg.header.stamp = rclcpp::Clock{}.now();
     tfB_->sendTransform(msg);
 
     scan.header.frame_id = "scan_visualization";
-    scan.header.stamp = clock_->now();
+    scan.header.stamp = rclcpp::Clock{}.now();
     scan_publisher_->publish(scan);
   }
 }
