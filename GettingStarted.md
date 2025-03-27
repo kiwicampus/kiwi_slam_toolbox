@@ -78,7 +78,8 @@ You will notice that the robot poses coming from the EKF taking the accurate GPS
 1. Pause the rosbag (you can do this by hitting space bar in the terminal playing it) after both paths are clearly visible as shown in the image:
 ![Screenshot from 2025-03-27 15-54-29](https://github.com/user-attachments/assets/521565e3-2460-4bbf-819a-86fb597b8729)
 3. Activate interactive mode in the checkbox on the rviz panel
-4. Rotate the first node from the posegraph as shown in the image
+4. Rotate the first node from the posegraph by using the interactive marker:
+![image](https://github.com/user-attachments/assets/03b33b1c-b475-44df-bdc5-cf33e0fc5488)
 5. Click on save changes for the posegraph and map to be updated
 6. Tipycally this will result in the posegraph being shifted as well, correct this by moving the first node back to the first robot's pose marked by the first red arrow.
 7. Repeat this process multiple times until both paths match as much as possible (see image)
