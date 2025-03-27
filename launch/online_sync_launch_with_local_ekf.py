@@ -28,6 +28,10 @@ def generate_launch_description():
     parameters_file_dir = os.path.join(
         slam_toolbox_dir, "config", "mapping_localization_params.yaml"
     )
+    default_segmapping_file = os.getenv("SEGMAP_FILE", "/workspace/maps2d/segmapping/USI.yaml")
+    segmapping_file = LaunchConfiguration("segmapping_file", default=default_segmapping_file)
+    print(f"SEGMAPPING FILE: {default_segmapping_file}")
+    
     localization_params = LaunchConfiguration(
         "localization_params", default=parameters_file_dir
     )
@@ -158,7 +162,7 @@ def generate_launch_description():
         output="screen",
         namespace="",
         parameters=[
-            {"yaml_filename": "/workspace/maps2d/segmapping/USI.yaml"},
+            {"yaml_filename": segmapping_file},
             {"use_sim_time": use_sim_time},
         ],
         remappings=[
@@ -191,6 +195,12 @@ def generate_launch_description():
         ]
     )
 
+    imu_tf_publisher = Node(
+                package="imu",
+                executable="imu_tf_publisher",
+                name="imu_tf_publisher",
+            )
+
     rviz_node = Node(
         package="rviz2",
         executable="rviz2",
@@ -217,4 +227,5 @@ def generate_launch_description():
     ld.add_action(start_average_imu_node)
     ld.add_action(map_server_nodes)
     ld.add_action(rviz_node)
+    ld.add_action(imu_tf_publisher)
     return ld
