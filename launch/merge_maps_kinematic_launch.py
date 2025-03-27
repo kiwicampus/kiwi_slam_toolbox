@@ -64,7 +64,7 @@ def generate_launch_description():
         parameters=[{"use_sim_time": True}],
         arguments=[
             "-d",
-            "/workspace/rover/ros2/src/kiwi_slam_toolbox/config/slam_toolbox_merging.rviz",
+            "/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/slam_toolbox_merging.rviz",
         ],
     )
 
