@@ -126,5 +126,5 @@ TODO:image
 3. Save merged map
 Save the map by running (Change the path and name of the file to the desired one):
 ```bash
-ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: {data: /workspace/maps2d/mor/mor_final}}"\
+ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: {data: /workspace/maps2d/mor/mor_final}}"
 ```
