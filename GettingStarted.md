@@ -38,7 +38,7 @@ map_start_pose: [450.3216783544306, 959.1554233038154, 2.1179507189976228]
 ```
 
 ### 4. Update localization_params.yaml file 
-Open the file in `/workspace/rover/ros2/src/kiwi_slam_toolbox/config/mapping_localization_params.yaml` and edit the `initial_state` and `initial_state_covariance` tags from the params file using the values computed previously by the python script.
+Open the file in `/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/mapping_localization_params.yaml` and edit the `initial_state` and `initial_state_covariance` tags from the params file using the values computed previously by the python script.
 
 ### 5. Download the segmapping file corresponding to the location you are working in and set the following env var
 ```bash
@@ -58,7 +58,7 @@ free_thresh: 0.196
 ## Mapping
 ### 1. Launch mapping
 ```bash
-ros2 launch slam_toolbox online_sync_launch_with_local_ekf.py use_sim_time:=true  slam_params_file:=/workspace/rover/ros2/src/kiwi_slam_toolbox/config/mapper_params_online_sync.yaml
+ros2 launch slam_toolbox online_sync_launch_with_local_ekf.py use_sim_time:=true  slam_params_file:=/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/mapper_params_online_sync.yaml
 ```
 This will also launch rviz, when everything loads, you should be able to see the segmapping.
 
@@ -106,11 +106,11 @@ Important: Remember to modify the env. variables for the ones corresponding to y
 
 Note:By default, this option adds an edge between start and final positions
 
-Edit the config file: `/workspace/rover/ros2/src/kiwi_slam_toolbox/config/mapper_params_online_sync_edition.yaml`
+Edit the config file: `/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/mapper_params_online_sync_edition.yaml`
 
 Change the field `map_file_name` by the one from the map you want to edit and launch:
 ```bash
-ros2 launch slam_toolbox online_sync_launch_with_local_ekf.py use_sim_time:=false  slam_params_file:=/workspace/rover/ros2/src/kiwi_slam_toolbox/config/mapper_params_online_sync_edition.yaml
+ros2 launch slam_toolbox online_sync_launch_with_local_ekf.py use_sim_time:=false  slam_params_file:=/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/mapper_params_online_sync_edition.yaml
 ```
 This option is still not working well. Fortunately for most cases it does not seem necessary.
 

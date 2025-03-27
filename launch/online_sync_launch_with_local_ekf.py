@@ -209,7 +209,7 @@ def generate_launch_description():
         parameters=[{"use_sim_time": use_sim_time}],
         arguments=[
             "-d",
-            "/workspace/rover/ros2/src/kiwi_slam_toolbox/config/slam_toolbox_default.rviz",
+            "/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/slam_toolbox_default.rviz",
         ],
     )
     ld = LaunchDescription()
