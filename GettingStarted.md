@@ -1,0 +1,130 @@
+
+# Mapping guide
+## Pre-mapping
+### 1. Download rosbags
+Your files could look like this for example:
+```
+📦workspace
+ ┗ 📂rosbags
+   ┗ 📂mapping2d
+     ┣ 📂mor
+     ┃ ┣📜mor_campus2_0.mcap
+     ┃ ┣📜mor_campus2_0.mcap
+     ┃ ┗📜mor_storage1_0.mcap
+     ┗ 📂usi
+       ┣📜usi_campus1_0.mcap
+       ┗📜usi_campus2_0.mcap
+```
+### 2. Run script to extract initial pose from the rosbag 
+Set the following variables depending of the folder where you downloaded the rosbags and choose the first one. For instance:
+```bash
+export ROSBAG_NAME=mor_storage_0
+export ROSBAG_FOLDER=/workspace/rosbags/mapping2d/mor
+export ROSBAG_PATH=$ROSBAG_FOLDER/$ROSBAG_NAME.mcap 
+```
+Run script
+```bash
+python3 /workspace/scripts/get_initial_pose_from_rosbag.py --input $ROSBAG_PATH 
+```
+
+You will get something that looks like this:
+```bash
+Add the following to the localization_params.yaml file:
+    initial_state: [450.3216783544306, 959.1554233038154, 0.0, 0.0, 0.0, 2.1179507189976228, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    initial_estimate_covariance: [0.0015210288896311376, 0.0015210292179516087, 9.993727174498896e-07, 9.98746613299191e-07, 9.98746613299191e-07, 0.0008120560250521425, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+After mapping, if you want to edit the map (optional), add the following to the mapper_params_online_sync.yaml file:
+map_start_pose: [450.3216783544306, 959.1554233038154, 2.1179507189976228]
+```
+
+### 4. Update localization_params.yaml file 
+Open the file in `/workspace/rover/ros2/src/kiwi_slam_toolbox/config/mapping_localization_params.yaml` and edit the `initial_state` and `initial_state_covariance` tags from the params file using the values computed previously by the python script.
+
+### 5. Download the segmapping file corresponding to the location you are working in and set the following env var
+```bash
+export SEGMAP_FILE=/workspace/maps2d/segmapping/MOR.yaml
+```
+Note: Using the [API](REDACTED_API_URL), you can download the segmapping .png file. You can create a .yaml with the following values:
+```yaml
+image: MOR_OUTDOORS_segmapping_png.png # CHANGE THIS FOR THE ONE YOU DOWNLOADED
+mode: trinary
+resolution: 0.1
+origin: [0.0, 0.0, 0]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+```
+
+## Mapping
+### 1. Launch mapping
+```bash
+ros2 launch slam_toolbox online_sync_launch_with_local_ekf.py use_sim_time:=true  slam_params_file:=/workspace/rover/ros2/src/kiwi_slam_toolbox/config/mapper_params_online_sync.yaml
+```
+This will also launch rviz, when everything loads, you should be able to see the segmapping.
+
+
+### 2. Play the rosbag (in another terminal)
+In another terminal type the following:
+```bash
+export ROSBAG_NAME=mor_storage_0
+export ROSBAG_FOLDER=/workspace/rosbags/mapping2d/mor
+export ROSBAG_PATH=$ROSBAG_FOLDER/$ROSBAG_NAME.mcap 
+ros2 bag play $ROSBAG_PATH --remap tf:=tf2 --clock
+```
+Important: Remember to modify the env. variables for the ones corresponding to your rosbag.
+
+### 3. Edit the initial node
+You will notice that the robot poses coming from the EKF taking the accurate GPS measurements, which is represented by the red arrows and the pose computed by slam toolbox (as seen in the blue path) differ. To fix this, it is tipycally enough to rotate the initial node. To fix this:
+1. Pause the posegraph after both paths are clearly visible as shown in the image:
+TODO: image
+2. Activate interactive mode in the checkbox on the rviz panel
+3. Rotate the first node from the posegraph as shown in the image
+4. Click on save changes for the posegraph and map to be updated
+5. Tipycally this will result in the posegraph being shifted as well, correct this by moving the first node back to the first robot's pose marked by the first red arrow.
+6. Repeat this process multiple times until both paths match as much as possible (see image)
+TODO: image
+In some cases, moving intermediate nodes is possible, however it is quite challenging due to how slam_toolbox is designed, even when you move the node to the desired location this will only result in small updates of the posegraph.
+
+## Saving the maps
+### 1. Save maps
+Create a folder. e.g. `/workspace/maps2d/mor`
+
+In another terminal:
+```bash
+export ROSBAG_NAME=mor_storage_0
+export ROSBAG_FOLDER=/workspace/rosbags/mapping2d/mor
+export ROSBAG_PATH=$ROSBAG_FOLDER/$ROSBAG_NAME.mcap 
+
+ros2 service call /slam_toolbox/serialize_map slam_toolbox/srv/SerializePoseGraph "{filename: /workspace/maps2d/mor/$ROSBAG_NAME}"
+ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: {data: /workspace/maps2d/mor/$ROSBAG_NAME}}"
+```
+Important: Remember to modify the env. variables for the ones corresponding to your rosbag.
+
+## Map Edition
+
+### 1. (Optional) Edit offline
+
+Note:By default, this option adds an edge between start and final positions
+
+Edit the config file: `/workspace/rover/ros2/src/kiwi_slam_toolbox/config/mapper_params_online_sync_edition.yaml`
+
+Change the field `map_file_name` by the one from the map you want to edit and launch:
+```bash
+ros2 launch slam_toolbox online_sync_launch_with_local_ekf.py use_sim_time:=false  slam_params_file:=/workspace/rover/ros2/src/kiwi_slam_toolbox/config/mapper_params_online_sync_edition.yaml
+```
+This option is still not working well. Fortunately for most cases it does not seem necessary.
+
+### 2. Map merging
+1. Execute the map merging launch
+```bash
+ros2 launch slam_toolbox merge_maps_kinematic_launch.py
+```
+2. Start adding the maps you want to merge by writting the path without extension e.g. (/workspace/maps2d/mor/mor_campus1_0) and clicking 'add submap' in rviz as shown in the image
+TODO: image
+3. Once you've added all the maps, click on 'Generate Map'
+TODO:image
+3. Save merged map
+Save the map by running (Change the path and name of the file to the desired one):
+```bash
+ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: {data: /workspace/maps2d/mor/mor_final}}"\
+```
