@@ -76,15 +76,18 @@ Important: Remember to modify the env. variables for the ones corresponding to y
 ### 3. Edit the initial node
 You will notice that the robot poses coming from the EKF taking the accurate GPS measurements, which is represented by the red arrows and the pose computed by slam toolbox (as seen in the blue path) differ. To fix this, it is tipycally enough to rotate the initial node. To fix this:
 1. Pause the rosbag (you can do this by hitting space bar in the terminal playing it) after both paths are clearly visible as shown in the image:
+   
 ![Screenshot from 2025-03-27 15-54-29](https://github.com/user-attachments/assets/521565e3-2460-4bbf-819a-86fb597b8729)
 3. Activate interactive mode in the checkbox on the rviz panel
 4. Rotate the first node from the posegraph by using the interactive marker:
+
 ![image](https://github.com/user-attachments/assets/03b33b1c-b475-44df-bdc5-cf33e0fc5488)
-5. Click on save changes for the posegraph and map to be updated
-6. Tipycally this will result in the posegraph being shifted as well, correct this by moving the first node back to the first robot's pose marked by the first red arrow.
-7. Repeat this process multiple times until both paths match as much as possible (see image)
+6. Click on save changes for the posegraph and map to be updated
+7. Tipycally this will result in the posegraph being shifted as well, correct this by moving the first node back to the first robot's pose marked by the first red arrow.
+8. Repeat this process multiple times until both paths match as much as possible (see image)
+
 ![Screenshot from 2025-03-27 16-02-38](https://github.com/user-attachments/assets/7bca112c-332c-423c-a721-cb71491660bb)
-8. Once you feel comfortable with the alignment, uncheck the interactive mode checkbox and continue playing the rosbag
+10. Once you feel comfortable with the alignment, uncheck the interactive mode checkbox and continue playing the rosbag
 
 In some cases, moving intermediate nodes is possible, however it is quite challenging due to how slam_toolbox is designed, even when you move the node to the desired location this will only result in small updates of the posegraph.
 
@@ -123,8 +126,10 @@ This option is still not working well. Fortunately for most cases it does not se
 ros2 launch slam_toolbox merge_maps_kinematic_launch.py
 ```
 2. Start adding the maps you want to merge by writting the path without extension e.g. (/workspace/maps2d/mor/mor_campus1_0) and clicking 'add submap' in rviz as shown in the image
+
 ![image](https://github.com/user-attachments/assets/74490b37-f7a2-480e-9e15-06bbfccf83a9)
-3. Once you've added all the maps, click on 'Generate Map'
+4. Once you've added all the maps, click on 'Generate Map'
+
 ![Screenshot from 2025-03-27 17-40-49](https://github.com/user-attachments/assets/fd69bebf-e2b4-4af3-9881-15460784aef8)
 3. Save merged map
 Save the map by running (Change the path and name of the file to the desired one):
