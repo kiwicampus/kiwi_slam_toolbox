@@ -20,6 +20,8 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <algorithm>
+#include "solvers/ceres_solver.hpp"
 #include "slam_toolbox/slam_toolbox_common.hpp"
 #include "slam_toolbox/serialization.hpp"
 
@@ -41,7 +43,8 @@ SlamToolbox::SlamToolbox(rclcpp::NodeOptions options)
   first_measurement_(true),
   process_near_pose_(nullptr),
   transform_timeout_(rclcpp::Duration::from_seconds(0.5)),
-  minimum_time_interval_(std::chrono::nanoseconds(0))
+  minimum_time_interval_(std::chrono::nanoseconds(0)),
+  gps_max_time_delta_(rclcpp::Duration::from_seconds(0.2))
 /*****************************************************************************/
 {
   int stack_size = 40'000'000;
@@ -236,6 +239,7 @@ CallbackReturn SlamToolbox::on_deactivate(const rclcpp_lifecycle::State &)
   sst_.reset();
   pose_pub_.reset();
   ssReset_.reset();
+  gps_sub_.reset();
 
   if (use_lifecycle_manager_) {
     // destroy bond connection
@@ -306,6 +310,7 @@ SlamToolbox::~SlamToolbox()
   sst_.reset();
   pose_pub_.reset();
   ssReset_.reset();
+  gps_sub_.reset();
 
   tfB_.reset();
   tfL_.reset();
@@ -438,13 +443,62 @@ void SlamToolbox::setParams()
   }
   enable_edition_mode_ = this->get_parameter("enable_edition_mode").as_bool();
 
+  enable_gps_constraints_ = false;
+  if (!this->has_parameter("enable_gps_constraints")) {
+    this->declare_parameter("enable_gps_constraints", enable_gps_constraints_);
+  }
+  enable_gps_constraints_ = this->get_parameter("enable_gps_constraints").as_bool();
+
+  gps_every_n_nodes_ = 1;
+  if (!this->has_parameter("gps_constraint_every_n_nodes")) {
+    this->declare_parameter("gps_constraint_every_n_nodes", gps_every_n_nodes_);
+  }
+  gps_every_n_nodes_ = this->get_parameter("gps_constraint_every_n_nodes").as_int();
+  if (gps_every_n_nodes_ <= 0) {
+    gps_every_n_nodes_ = 1;
+  }
+
+  gps_covariance_threshold_ = 1.0;
+  if (!this->has_parameter("gps_covariance_threshold")) {
+    this->declare_parameter("gps_covariance_threshold", gps_covariance_threshold_);
+  }
+  gps_covariance_threshold_ = this->get_parameter("gps_covariance_threshold").as_double();
+
+  gps_covariance_scale_ = 1.0;
+  if (!this->has_parameter("gps_covariance_scale")) {
+    this->declare_parameter("gps_covariance_scale", gps_covariance_scale_);
+  }
+  gps_covariance_scale_ = this->get_parameter("gps_covariance_scale").as_double();
+  if (gps_covariance_scale_ <= 0.0) {
+    gps_covariance_scale_ = 1.0;
+  }
+
+  gps_node_counter_ = 0;
+
+  double tmp_val = 0.5;
+
+  gps_buffer_size_ = 200;
+  if (!this->has_parameter("gps_buffer_size")) {
+    this->declare_parameter("gps_buffer_size", gps_buffer_size_);
+  }
+  gps_buffer_size_ = this->get_parameter("gps_buffer_size").as_int();
+  if (gps_buffer_size_ <= 0) {
+    gps_buffer_size_ = 1;
+  }
+
+  tmp_val = 0.2;
+  if (!this->has_parameter("gps_max_time_delta")) {
+    this->declare_parameter("gps_max_time_delta", tmp_val);
+  }
+  tmp_val = this->get_parameter("gps_max_time_delta").as_double();
+  gps_max_time_delta_ = rclcpp::Duration::from_seconds(tmp_val);
+
   nodes_to_link_ = std::vector<int64_t>();
   if (!this->has_parameter("nodes_to_link")) {
     this->declare_parameter("nodes_to_link", nodes_to_link_);
   }
   nodes_to_link_ = this->get_parameter("nodes_to_link").as_integer_array();
 
-  double tmp_val = 0.5;
   if (!this->has_parameter("transform_timeout")) {
     this->declare_parameter("transform_timeout", tmp_val);
   }
@@ -504,6 +558,16 @@ void SlamToolbox::setROSInterfaces()
     "slam_toolbox/reset",
     std::bind(&SlamToolbox::resetCallback, this,
     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
+  if (enable_gps_constraints_) {
+    gps_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+      "/odometry/global",
+      10,
+      std::bind(&SlamToolbox::gpsCallback, this, std::placeholders::_1));
+    RCLCPP_INFO(
+      get_logger(),
+      "GPS constraint injection enabled on /odometry/global");
+  }
 
   scan_filter_sub_ =
     std::make_unique<message_filters::Subscriber<sensor_msgs::msg::LaserScan,
@@ -581,6 +645,132 @@ void SlamToolbox::publishVisualizations()
       closure_assistant_->publishGraph();
     }
     r.sleep();
+  }
+}
+
+/*****************************************************************************/
+void SlamToolbox::gpsCallback(nav_msgs::msg::Odometry::ConstSharedPtr msg)
+/*****************************************************************************/
+{
+  if (!enable_gps_constraints_) {
+    return;
+  }
+  boost::mutex::scoped_lock lock(gps_buffer_mutex_);
+  gps_buffer_.push_back(msg);
+  while (static_cast<int>(gps_buffer_.size()) > gps_buffer_size_) {
+    gps_buffer_.pop_front();
+  }
+}
+
+/*****************************************************************************/
+void SlamToolbox::maybeAddGPSConstraintForBufferedNodes()
+/*****************************************************************************/
+{
+  if (!enable_gps_constraints_) {
+    return;
+  }
+
+  auto ceres_solver = std::dynamic_pointer_cast<solver_plugins::CeresSolver>(solver_);
+  if (!ceres_solver) {
+    RCLCPP_WARN_ONCE(
+      get_logger(),
+      "GPS constraints require the CeresSolver plugin. Ignoring /odometry/global.");
+    return;
+  }
+
+  while (true) {
+    PendingGPSNode matched_node;
+    nav_msgs::msg::Odometry::ConstSharedPtr matched_msg;
+    rclcpp::Duration matched_delta = rclcpp::Duration::from_seconds(1e9);
+
+    {
+      boost::mutex::scoped_lock gps_lock(gps_buffer_mutex_);
+
+      if (gps_node_buffer_.empty() || gps_buffer_.empty()) {
+        return;
+      }
+
+      while (!gps_node_buffer_.empty() && !gps_buffer_.empty()) {
+        const rclcpp::Time gps_stamp(gps_buffer_.front()->header.stamp);
+        if (gps_stamp + gps_max_time_delta_ < gps_node_buffer_.front().stamp) {
+          gps_buffer_.pop_front();
+          continue;
+        }
+        break;
+      }
+
+      while (!gps_node_buffer_.empty() && !gps_buffer_.empty()) {
+        const rclcpp::Time newest_gps_stamp(gps_buffer_.back()->header.stamp);
+        if (gps_node_buffer_.front().stamp + gps_max_time_delta_ < newest_gps_stamp) {
+          RCLCPP_DEBUG(
+            get_logger(),
+            "Dropping GPS-eligible node %d with no GPS match inside %.3fs",
+            gps_node_buffer_.front().node_id,
+            gps_max_time_delta_.seconds());
+          gps_node_buffer_.pop_front();
+          continue;
+        }
+        break;
+      }
+
+      if (gps_node_buffer_.empty() || gps_buffer_.empty()) {
+        return;
+      }
+
+      const PendingGPSNode & pending_node = gps_node_buffer_.front();
+      auto best_it = gps_buffer_.end();
+      for (auto it = gps_buffer_.begin(); it != gps_buffer_.end(); ++it) {
+        const auto & gps_msg = *it;
+        const auto & cov = gps_msg->pose.covariance;
+        const double var_x = cov[0];
+        const double var_y = cov[7];
+        if (var_x > gps_covariance_threshold_ || var_y > gps_covariance_threshold_) {
+          continue;
+        }
+
+        const rclcpp::Time gps_stamp(gps_msg->header.stamp);
+        const rclcpp::Duration delta = gps_stamp > pending_node.stamp ?
+          gps_stamp - pending_node.stamp :
+          pending_node.stamp - gps_stamp;
+
+        if (delta <= gps_max_time_delta_ && delta <= matched_delta) {
+          matched_delta = delta;
+          best_it = it;
+        }
+      }
+
+      if (best_it == gps_buffer_.end()) {
+        return;
+      }
+
+      matched_node = pending_node;
+      matched_msg = *best_it;
+      gps_node_buffer_.pop_front();
+      gps_buffer_.erase(best_it);
+    }
+
+    const auto & cov = matched_msg->pose.covariance;
+    Eigen::Matrix2d covariance_2d;
+    covariance_2d << cov[0], cov[1],
+      cov[6], cov[7];
+    covariance_2d *= gps_covariance_scale_;
+    covariance_2d(0, 0) = std::max(covariance_2d(0, 0), 1e-6);
+    covariance_2d(1, 1) = std::max(covariance_2d(1, 1), 1e-6);
+
+    ceres_solver->AddGPSConstraint(
+      matched_node.node_id,
+      matched_msg->pose.pose.position.x,
+      matched_msg->pose.pose.position.y,
+      covariance_2d.inverse());
+    smapper_->getMapper()->CorrectPoses();
+
+    RCLCPP_DEBUG(
+      get_logger(),
+      "Added GPS constraint for node %d at (%.3f, %.3f), dt=%.3fs",
+      matched_node.node_id,
+      matched_msg->pose.pose.position.x,
+      matched_msg->pose.pose.position.y,
+      matched_delta.seconds());
   }
 }
 
@@ -908,6 +1098,16 @@ LocalizedRangeScan * SlamToolbox::addScan(
     setTransformFromPoses(range_scan->GetCorrectedPose(), odom_pose,
       scan->header.stamp, update_reprocessing_transform);
     dataset_->Add(range_scan);
+    gps_node_counter_++;
+    if (enable_gps_constraints_ && gps_node_counter_ >= gps_every_n_nodes_) {
+      gps_node_counter_ = 0;
+      boost::mutex::scoped_lock gps_lock(gps_buffer_mutex_);
+      gps_node_buffer_.push_back({range_scan->GetUniqueId(), rclcpp::Time(scan->header.stamp)});
+      while (static_cast<int>(gps_node_buffer_.size()) > gps_buffer_size_) {
+        gps_node_buffer_.pop_front();
+      }
+    }
+    maybeAddGPSConstraintForBufferedNodes();
 
     publishPose(range_scan->GetCorrectedPose(), covariance, scan->header.stamp);
   } else {

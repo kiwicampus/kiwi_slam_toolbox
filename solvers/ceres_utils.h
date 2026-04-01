@@ -120,4 +120,42 @@ private:
   const Eigen::Matrix3d sqrt_information_;
 };
 
+class AbsolutePositionErrorTerm
+{
+public:
+  AbsolutePositionErrorTerm(
+    double x_meas, double y_meas,
+    const Eigen::Matrix2d & sqrt_information)
+  : x_meas_(x_meas), y_meas_(y_meas), sqrt_information_(sqrt_information)
+  {
+  }
+
+  template<typename T>
+  bool operator()(
+    const T * const x, const T * const y, const T * const /*yaw*/,
+    T * residuals_ptr) const
+  {
+    Eigen::Map<Eigen::Matrix<T, 2, 1>> residuals(residuals_ptr);
+    residuals(0) = *x - T(x_meas_);
+    residuals(1) = *y - T(y_meas_);
+    residuals = sqrt_information_.template cast<T>() * residuals;
+    return true;
+  }
+
+  static ceres::CostFunction * Create(
+    double x_meas, double y_meas,
+    const Eigen::Matrix2d & sqrt_information)
+  {
+    return new ceres::AutoDiffCostFunction<AbsolutePositionErrorTerm, 2, 1, 1, 1>(
+      new AbsolutePositionErrorTerm(x_meas, y_meas, sqrt_information));
+  }
+
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+private:
+  const double x_meas_;
+  const double y_meas_;
+  const Eigen::Matrix2d sqrt_information_;
+};
+
 #endif  // SOLVERS__CERES_UTILS_H_

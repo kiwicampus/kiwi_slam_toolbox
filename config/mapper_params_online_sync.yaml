@@ -7,7 +7,7 @@ slam_toolbox:
     ceres_preconditioner: SCHUR_JACOBI
     ceres_trust_strategy: LEVENBERG_MARQUARDT
     ceres_dogleg_type: TRADITIONAL_DOGLEG
-    ceres_loss_function: None
+    ceres_loss_function: HuberLoss
 
     # ROS Parameters
     odom_frame: odom
@@ -37,6 +37,12 @@ slam_toolbox:
     tf_buffer_duration: 30.
     stack_size_to_use: 40000000 #// program needs a larger stack size to serialize large maps
     enable_interactive_mode: true
+    enable_gps_constraints: true
+    gps_constraint_every_n_nodes: 5
+    gps_covariance_threshold: 0.015
+    gps_covariance_scale: 1.0
+    gps_buffer_size: 200
+    gps_max_time_delta: 0.2
 
     # General Parameters
     use_scan_matching: true
