@@ -152,7 +152,7 @@ add_library(toolbox_common src/slam_toolbox_common.cpp src/map_saver.cpp src/loo
 ament_target_dependencies(toolbox_common
   ${dependencies}
 )
-target_link_libraries(toolbox_common kartoSlamToolbox ${Boost_LIBRARIES})
+target_link_libraries(toolbox_common ceres_solver_plugin kartoSlamToolbox ${Boost_LIBRARIES})
 rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
 target_link_libraries(toolbox_common "${cpp_typesupport_target}")
 
