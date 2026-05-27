@@ -67,6 +67,7 @@
   <exec_depend>libqt5-core</exec_depend>
   <exec_depend>libqt5-widgets</exec_depend>
   <exec_depend>nav2_map_server</exec_depend>
+  <exec_depend>rviz_satellite</exec_depend>
   <exec_depend>builtin_interfaces</exec_depend>
   <exec_depend>rosidl_default_generators</exec_depend>
   <exec_depend>lifecycle_msgs</exec_depend>

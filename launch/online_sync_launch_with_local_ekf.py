@@ -11,7 +11,13 @@ from launch.actions import (
 from launch.conditions import IfCondition
 from launch.events import matches_action
 from launch.actions import GroupAction
-from launch.substitutions import AndSubstitution, LaunchConfiguration, NotSubstitution
+from launch.substitutions import (
+    AndSubstitution,
+    LaunchConfiguration,
+    NotSubstitution,
+    PathJoinSubstitution,
+    TextSubstitution,
+)
 from launch_ros.actions import LifecycleNode, Node
 from launch_ros.event_handlers import OnStateTransition
 from launch_ros.events.lifecycle import ChangeState
@@ -28,10 +34,16 @@ def generate_launch_description():
     parameters_file_dir = os.path.join(
         slam_toolbox_dir, "config", "mapping_localization_params.yaml"
     )
-    default_segmapping_file = os.getenv("SEGMAP_FILE", "/workspace/maps2d/segmapping/USI.yaml")
-    segmapping_file = LaunchConfiguration("segmapping_file", default=default_segmapping_file)
-    print(f"SEGMAPPING FILE: {default_segmapping_file}")
-    
+    maps_site = LaunchConfiguration("maps_site")
+    segmapping_file = PathJoinSubstitution(
+        [
+            TextSubstitution(text="/workspace/maps/maps2d"),
+            maps_site,
+            TextSubstitution(text="segmapping"),
+            TextSubstitution(text="segmapping_png.yaml"),
+        ]
+    )
+
     localization_params = LaunchConfiguration(
         "localization_params", default=parameters_file_dir
     )
@@ -65,6 +77,21 @@ def generate_launch_description():
         ),
         description="Full path to the ROS2 parameters file to use for the slam_toolbox node",
     )
+    declare_use_rviz_cmd = DeclareLaunchArgument(
+        "use_rviz",
+        default_value="true",
+        description="If true, start RViz2 with slam_toolbox_default.rviz",
+    )
+    declare_maps_site_cmd = DeclareLaunchArgument(
+        "maps_site",
+        default_value="LLE",
+        description=(
+            "Site folder under /workspace/maps/maps2d/ "
+            "(same value as mapping_rosbag_manager search_term, e.g. LLE, MOR). "
+            "Segmap: <maps_site>/segmapping/segmapping_png.yaml"
+        ),
+    )
+    use_rviz = LaunchConfiguration("use_rviz")
 
     start_sync_slam_toolbox_node = LifecycleNode(
         parameters=[
@@ -201,16 +228,19 @@ def generate_launch_description():
                 name="imu_tf_publisher",
             )
 
+    rviz_config = os.path.join(
+        get_package_share_directory("slam_toolbox"),
+        "config",
+        "slam_toolbox_default.rviz",
+    )
     rviz_node = Node(
         package="rviz2",
         executable="rviz2",
         name="rviz2",
         output="screen",
         parameters=[{"use_sim_time": use_sim_time}],
-        arguments=[
-            "-d",
-            "/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/slam_toolbox_default.rviz",
-        ],
+        arguments=["-d", rviz_config],
+        condition=IfCondition(use_rviz),
     )
     ld = LaunchDescription()
 
@@ -218,6 +248,9 @@ def generate_launch_description():
     ld.add_action(declare_use_lifecycle_manager)
     ld.add_action(declare_use_sim_time_argument)
     ld.add_action(declare_slam_params_file_cmd)
+    ld.add_action(declare_use_rviz_cmd)
+    ld.add_action(declare_maps_site_cmd)
+    ld.add_action(LogInfo(msg=["SEGMAPPING FILE: ", segmapping_file]))
     ld.add_action(declare_localization_params_cmd)
     ld.add_action(start_sync_slam_toolbox_node)
     ld.add_action(configure_event)
