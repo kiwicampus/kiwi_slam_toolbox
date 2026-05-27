@@ -7,6 +7,7 @@
 #define SOLVERS__CERES_SOLVER_HPP_
 
 #include <math.h>
+#include <ceres/local_parameterization.h>
 #include <ceres/ceres.h>
 #include <vector>
 #include <unordered_map>
@@ -46,6 +47,9 @@ public:
   virtual void AddNode(karto::Vertex<karto::LocalizedRangeScan> * pVertex);
   // Adds a constraint to the solver
   virtual void AddConstraint(karto::Edge<karto::LocalizedRangeScan> * pEdge);
+  virtual void AddGPSConstraint(
+    int node_id, double x, double y,
+    const Eigen::Matrix2d & information);
   // Get graph stored
   virtual std::unordered_map<int, Eigen::Vector3d> * getGraph();
   // Removes a node from the solver correction table
@@ -67,12 +71,13 @@ private:
   ceres::Problem::Options options_problem_;
   ceres::LossFunction * loss_function_;
   ceres::Problem * problem_;
-  ceres::Manifold * angle_manifold_;
+  ceres::LocalParameterization * angle_local_parameterization_;
   bool was_constant_set_, debug_logging_;
 
   // graph
   std::unordered_map<int, Eigen::Vector3d> * nodes_;
   std::unordered_map<size_t, ceres::ResidualBlockId> * blocks_;
+  std::unordered_map<int, ceres::ResidualBlockId> * gps_blocks_;
   std::unordered_map<int, Eigen::Vector3d>::iterator first_node_;
   boost::mutex nodes_mutex_;
 

@@ -16,6 +16,7 @@ CeresSolver::CeresSolver()
 : nodes_(new std::unordered_map<int, Eigen::Vector3d>()),
   blocks_(new std::unordered_map<std::size_t,
     ceres::ResidualBlockId>()),
+  gps_blocks_(new std::unordered_map<int, ceres::ResidualBlockId>()),
   problem_(NULL), was_constant_set_(false)
 /*****************************************************************************/
 {
@@ -77,7 +78,7 @@ void CeresSolver::Configure(rclcpp_lifecycle::LifecycleNode::SharedPtr node)
   first_node_ = nodes_->end();
 
   // formulate problem
-  angle_manifold_ = AngleManifold::Create();
+  angle_local_parameterization_ = AngleLocalParameterization::Create();
 
   // choose loss function default squared loss (NULL)
   loss_function_ = NULL;
@@ -205,6 +206,9 @@ CeresSolver::~CeresSolver()
   if (blocks_ != NULL) {
     delete blocks_;
   }
+  if (gps_blocks_ != NULL) {
+    delete gps_blocks_;
+  }
   if (problem_ != NULL) {
     delete problem_;
   }
@@ -226,6 +230,7 @@ void CeresSolver::Compute()
 
   // populate contraint for static initial pose
   if (!was_constant_set_ && first_node_ != nodes_->end() &&
+      gps_blocks_->empty() &&
       problem_->HasParameterBlock(&first_node_->second(0)) &&
       problem_->HasParameterBlock(&first_node_->second(1)) &&
       problem_->HasParameterBlock(&first_node_->second(2))) {
@@ -304,13 +309,17 @@ void CeresSolver::Reset()
   if (blocks_) {
     delete blocks_;
   }
+  if (gps_blocks_) {
+    delete gps_blocks_;
+  }
 
   nodes_ = new std::unordered_map<int, Eigen::Vector3d>();
   blocks_ = new std::unordered_map<std::size_t, ceres::ResidualBlockId>();
+  gps_blocks_ = new std::unordered_map<int, ceres::ResidualBlockId>();
   problem_ = new ceres::Problem(options_problem_);
   first_node_ = nodes_->end();
 
-  angle_manifold_ = AngleManifold::Create();
+  angle_local_parameterization_ = AngleLocalParameterization::Create();
 }
 
 /*****************************************************************************/
@@ -382,13 +391,70 @@ void CeresSolver::AddConstraint(karto::Edge<karto::LocalizedRangeScan> * pEdge)
     cost_function, loss_function_,
     &node1it->second(0), &node1it->second(1), &node1it->second(2),
     &node2it->second(0), &node2it->second(1), &node2it->second(2));
-  problem_->SetManifold(&node1it->second(2),
-    angle_manifold_);
-  problem_->SetManifold(&node2it->second(2),
-    angle_manifold_);
+  problem_->SetParameterization(&node1it->second(2),
+    angle_local_parameterization_);
+  problem_->SetParameterization(&node2it->second(2),
+    angle_local_parameterization_);
 
   blocks_->insert(std::pair<std::size_t, ceres::ResidualBlockId>(
       GetHash(node1, node2), block));
+}
+
+/*****************************************************************************/
+void CeresSolver::AddGPSConstraint(
+  int node_id, double x, double y,
+  const Eigen::Matrix2d & information)
+/*****************************************************************************/
+{
+  boost::mutex::scoped_lock lock(nodes_mutex_);
+
+  GraphIterator node_it = nodes_->find(node_id);
+  if (node_it == nodes_->end()) {
+    RCLCPP_WARN(
+      logger_,
+      "CeresSolver::AddGPSConstraint: node %d not found.",
+      node_id);
+    return;
+  }
+
+  auto existing = gps_blocks_->find(node_id);
+  if (existing != gps_blocks_->end()) {
+    problem_->RemoveResidualBlock(existing->second);
+    gps_blocks_->erase(existing);
+  }
+
+  if (first_node_ != nodes_->end() &&
+    problem_->HasParameterBlock(&first_node_->second(0)) &&
+    problem_->HasParameterBlock(&first_node_->second(1)) &&
+    problem_->HasParameterBlock(&first_node_->second(2)))
+  {
+    problem_->SetParameterBlockVariable(&first_node_->second(0));
+    problem_->SetParameterBlockVariable(&first_node_->second(1));
+    problem_->SetParameterBlockVariable(&first_node_->second(2));
+    was_constant_set_ = false;
+  }
+
+  Eigen::LLT<Eigen::Matrix2d> llt(information);
+  if (llt.info() != Eigen::Success) {
+    RCLCPP_WARN(
+      logger_,
+      "CeresSolver::AddGPSConstraint: information matrix for node %d is not SPD.",
+      node_id);
+    return;
+  }
+  Eigen::Matrix2d sqrt_information = llt.matrixU();
+  ceres::CostFunction * cost_function =
+    AbsolutePositionErrorTerm::Create(x, y, sqrt_information);
+
+  ceres::ResidualBlockId block = problem_->AddResidualBlock(
+    cost_function,
+    new ceres::HuberLoss(1.0),
+    &node_it->second(0),
+    &node_it->second(1),
+    &node_it->second(2));
+
+  problem_->SetParameterization(&node_it->second(2), angle_local_parameterization_);
+  gps_blocks_->insert(std::make_pair(node_id, block));
 }
 
 /*****************************************************************************/
@@ -398,6 +464,11 @@ void CeresSolver::RemoveNode(kt_int32s id)
   boost::mutex::scoped_lock lock(nodes_mutex_);
   GraphIterator nodeit = nodes_->find(id);
   if (nodeit != nodes_->end()) {
+    auto gps_it = gps_blocks_->find(id);
+    if (gps_it != gps_blocks_->end()) {
+      problem_->RemoveResidualBlock(gps_it->second);
+      gps_blocks_->erase(gps_it);
+    }
     if (problem_->HasParameterBlock(&nodeit->second(0)) &&
         problem_->HasParameterBlock(&nodeit->second(1)) &&
         problem_->HasParameterBlock(&nodeit->second(2)))

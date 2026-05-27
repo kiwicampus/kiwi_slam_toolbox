@@ -103,17 +103,17 @@ include_directories(include lib/karto_sdk/include
 add_definitions(${EIGEN3_DEFINITIONS})
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  srvs/Pause.srv
-  srvs/Reset.srv
-  srvs/ClearQueue.srv
-  srvs/ToggleInteractive.srv
-  srvs/Clear.srv
-  srvs/SaveMap.srv
-  srvs/LoopClosure.srv
-  srvs/MergeMaps.srv
-  srvs/AddSubmap.srv
-  srvs/DeserializePoseGraph.srv
-  srvs/SerializePoseGraph.srv
+  srv/Pause.srv
+  srv/Reset.srv
+  srv/ClearQueue.srv
+  srv/ToggleInteractive.srv
+  srv/Clear.srv
+  srv/SaveMap.srv
+  srv/LoopClosure.srv
+  srv/MergeMaps.srv
+  srv/AddSubmap.srv
+  srv/DeserializePoseGraph.srv
+  srv/SerializePoseGraph.srv
   DEPENDENCIES builtin_interfaces geometry_msgs std_msgs nav_msgs visualization_msgs
 )
 
@@ -152,7 +152,7 @@ add_library(toolbox_common src/slam_toolbox_common.cpp src/map_saver.cpp src/loo
 ament_target_dependencies(toolbox_common
   ${dependencies}
 )
-target_link_libraries(toolbox_common kartoSlamToolbox ${Boost_LIBRARIES})
+target_link_libraries(toolbox_common ceres_solver_plugin kartoSlamToolbox ${Boost_LIBRARIES})
 rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
 target_link_libraries(toolbox_common "${cpp_typesupport_target}")
 

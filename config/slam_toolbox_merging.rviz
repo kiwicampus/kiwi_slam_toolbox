@@ -6,21 +6,13 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /AerialMap1
         - /Map2/Topic1
-        - /LaserScan1
         - /InteractiveMarkers1
         - /Odometry1
-        - /Odometry1/Shape1
         - /InteractiveMarkers2
-        - /Image1
-        - /Image1/Topic1
-        - /Odometry2
-        - /Odometry2/Shape1
-        - /AerialMap2
-        - /AerialMap2/Status1
+        - /Map4
       Splitter Ratio: 0.5
-    Tree Height: 2267
+    Tree Height: 359
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -38,7 +30,9 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
+  - Class: slam_toolbox::SlamToolboxPlugin
+    Name: SlamToolboxPlugin
 Visualization Manager:
   Class: ""
   Displays:
@@ -60,37 +54,6 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Alpha: 0.699999988079071
-      Blocks: 3
-      Class: rviz_satellite/AerialMap
-      Draw Behind: true
-      Enabled: true
-      Map Frame: map
-      Name: AerialMap
-      Object URI: https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}
-      Query X Offset: 0
-      Query Y Offset: 0
-      TF tolerance: 0.10000000149011612
-      Timeout: 0
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /fix
-      UTM Zone: -1
-      Use Local Map:
-        Meter per Pixel (Zoom 0): 0
-        Origin CRS: ""
-        "Origin X ": 0
-        "Origin Y ": 0
-        Value: false
-      Value: true
-      Visualize in UTM Frame: false
-      X Offset: 0
-      Y Offset: 0
-      Z Offset: 0
-      Zoom: 18
     - Alpha: 0.699999988079071
       Binary representation: false
       Binary threshold: 100
@@ -159,7 +122,7 @@ Visualization Manager:
       Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.05000000074505806
+      Size (m): 0.009999999776482582
       Style: Flat Squares
       Topic:
         Depth: 5
@@ -183,7 +146,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 47
@@ -204,13 +167,12 @@ Visualization Manager:
         Value: /slam_toolbox/scan_visualization
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        slam_toolbox: true
-        slam_toolbox_edges: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -232,147 +194,13 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        base_link:
-          Value: true
-        camera_accel_frame:
-          Value: true
-        camera_accel_optical_frame:
-          Value: true
-        camera_aligned_depth_to_infra1_frame:
-          Value: true
-        camera_color_frame:
-          Value: true
-        camera_color_optical_frame:
-          Value: true
-        camera_depth_frame:
-          Value: true
-        camera_depth_optical_frame:
-          Value: true
-        camera_gyro_frame:
-          Value: true
-        camera_gyro_optical_frame:
-          Value: true
-        camera_imu_frame:
-          Value: true
-        camera_imu_optical_frame:
-          Value: true
-        camera_infra1_frame:
-          Value: true
-        camera_infra1_optical_frame:
-          Value: true
-        camera_infra2_frame:
-          Value: true
-        camera_infra2_optical_frame:
-          Value: true
-        camera_link:
-          Value: true
-        chassis_front:
-          Value: true
-        gps:
-          Value: true
-        imu:
-          Value: true
-        inertial_link:
-          Value: true
-        laser_link:
-          Value: true
-        left:
-          Value: true
-        livox_frame:
-          Value: true
-        livox_link:
-          Value: true
-        map:
-          Value: true
-        odom:
-          Value: true
-        range_sensor0:
-          Value: true
-        range_sensor1:
-          Value: true
-        range_sensor2:
-          Value: true
-        range_sensor3:
-          Value: true
-        range_sensor4:
-          Value: true
-        rear:
-          Value: true
-        right:
-          Value: true
-        router:
-          Value: true
-        utm:
-          Value: true
-        wifi:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: false
       Tree:
-        map:
-          odom:
-            base_link:
-              inertial_link:
-                camera_link:
-                  camera_accel_frame:
-                    camera_accel_optical_frame:
-                      {}
-                  camera_aligned_depth_to_infra1_frame:
-                    camera_infra1_optical_frame:
-                      {}
-                  camera_color_frame:
-                    camera_color_optical_frame:
-                      {}
-                  camera_depth_frame:
-                    camera_depth_optical_frame:
-                      {}
-                  camera_gyro_frame:
-                    camera_gyro_optical_frame:
-                      {}
-                    camera_imu_frame:
-                      camera_imu_optical_frame:
-                        {}
-                  camera_infra1_frame:
-                    {}
-                  camera_infra2_frame:
-                    camera_infra2_optical_frame:
-                      {}
-                chassis_front:
-                  {}
-                gps:
-                  {}
-                imu:
-                  {}
-                laser_link:
-                  {}
-                left:
-                  {}
-                livox_link:
-                  livox_frame:
-                    {}
-                range_sensor0:
-                  {}
-                range_sensor1:
-                  {}
-                range_sensor2:
-                  {}
-                range_sensor3:
-                  {}
-                range_sensor4:
-                  {}
-                rear:
-                  {}
-                right:
-                  {}
-                router:
-                  {}
-                wifi:
-                  {}
-          utm:
-            {}
+        {}
       Update Interval: 0
       Value: true
     - Angle Tolerance: 0.10000000149011612
@@ -393,7 +221,7 @@ Visualization Manager:
           Value: true
         Value: true
       Enabled: true
-      Keep: 2000
+      Keep: 1000
       Name: Odometry
       Position Tolerance: 0.10000000149011612
       Shape:
@@ -404,7 +232,7 @@ Visualization Manager:
         Head Length: 0.30000001192092896
         Head Radius: 0.10000000149011612
         Shaft Length: 1
-        Shaft Radius: 0.019999999552965164
+        Shaft Radius: 0.05000000074505806
         Value: Arrow
       Topic:
         Depth: 5
@@ -423,90 +251,52 @@ Visualization Manager:
       Show Descriptions: true
       Show Visual Aids: false
       Value: true
-    - Class: rviz_default_plugins/Image
-      Enabled: false
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: Image
-      Normalize Range: true
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Best Effort
-        Value: /camera/color/image_raw
-      Value: false
-    - Angle Tolerance: 0.10000000149011612
-      Class: rviz_default_plugins/Odometry
-      Covariance:
-        Orientation:
-          Alpha: 0.5
-          Color: 255; 255; 127
-          Color Style: Unique
-          Frame: Local
-          Offset: 1
-          Scale: 1
-          Value: true
-        Position:
-          Alpha: 0.30000001192092896
-          Color: 204; 51; 204
-          Scale: 1
-          Value: true
-        Value: true
-      Enabled: false
-      Keep: 100
-      Name: Odometry
-      Position Tolerance: 0.10000000149011612
-      Shape:
-        Alpha: 1
-        Axes Length: 1
-        Axes Radius: 0.10000000149011612
-        Color: 255; 255; 0
-        Head Length: 0.30000001192092896
-        Head Radius: 0.10000000149011612
-        Shaft Length: 1
-        Shaft Radius: 0.05000000074505806
-        Value: Arrow
+    - Alpha: 0.4000000059604645
+      Binary representation: false
+      Binary threshold: 100
+      Class: rviz_default_plugins/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
       Topic:
         Depth: 5
         Durability Policy: Volatile
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /odometry/local2
-      Value: false
-    - Alpha: 0.699999988079071
-      Blocks: 3
-      Class: rviz_satellite/AerialMap
-      Draw Behind: true
-      Enabled: true
-      Map Frame: map
-      Name: AerialMap
-      Object URI: https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}
-      Query X Offset: 0
-      Query Y Offset: 0
-      TF tolerance: 0.10000000149011612
-      Timeout: 3
-      Topic:
+        Value: /map_1
+      Update Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /fix
-      UTM Zone: -1
-      Use Local Map:
-        Meter per Pixel (Zoom 0): 0
-        Origin CRS: ""
-        "Origin X ": 0
-        "Origin Y ": 0
-        Value: false
+        Value: /map_1_updates
+      Use Timestamp: false
       Value: true
-      Visualize in UTM Frame: false
-      X Offset: 0
-      Y Offset: 0
-      Z Offset: 0
-      Zoom: 20
+    - Alpha: 0.4000000059604645
+      Binary representation: false
+      Binary threshold: 100
+      Class: rviz_default_plugins/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /map_2
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /map_2_updates
+      Use Timestamp: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -553,36 +343,36 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 132.30862426757812
+      Distance: 738.7661743164062
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 10.28412914276123
-        Y: 22.908649444580078
-        Z: -3.2085535526275635
+        X: 350.6137390136719
+        Y: 659.2259521484375
+        Z: 0.1973850429058075
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.5147963762283325
       Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 4.61177396774292
+      Yaw: 6.22358512878418
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 2606
+  Height: 1131
   Hide Left Dock: false
   Hide Right Dock: true
-  Image:
-    collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000003ee0000093ffc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b000000ab00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000000690000093f0000017800fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000220053006c0061006d0054006f006f006c0062006f00780050006c007500670069006e0100000188000001b10000000000000000fb0000000a0049006d0061006700650000000292000001530000004500ffffff000000010000010f000002b4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b000002b40000012300fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000140000000051fc0100000002fb0000000800540069006d00650100000000000014000000046000fffffffb0000000800540069006d00650100000000000004500000000000000000000010060000093f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000040000000000000217000003d1fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b000001a2000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000220053006c0061006d0054006f006f006c0062006f00780050006c007500670069006e01000001e3000002290000016d00ffffff000000010000010f000002b4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b000002b4000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d00650100000000000007800000025300fffffffb0000000800540069006d0065010000000000000450000000000000000000000563000003d100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
+    collapsed: false
+  SlamToolboxPlugin:
     collapsed: false
   Time:
     collapsed: false
@@ -590,6 +380,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: true
-  Width: 5120
+  Width: 1920
   X: 0
-  Y: 64
+  Y: 32

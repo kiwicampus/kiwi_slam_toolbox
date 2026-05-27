@@ -25,6 +25,7 @@
 #include <map>
 #include <vector>
 #include <queue>
+#include <deque>
 #include <cstdlib>
 #include <memory>
 #include <fstream>
@@ -43,6 +44,7 @@
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 
 #include "pluginlib/class_loader.hpp"
 
@@ -53,6 +55,8 @@
 #include "slam_toolbox/get_pose_helper.hpp"
 #include "slam_toolbox/map_saver.hpp"
 #include "slam_toolbox/loop_closure_assistant.hpp"
+
+#include <tf2/LinearMath/Quaternion.h>
 
 namespace slam_toolbox
 {
@@ -89,9 +93,12 @@ protected:
   void setParams();
   void setSolver();
   void setROSInterfaces();
+  sensor_msgs::msg::LaserScan convertToLaserScan(karto::LocalizedRangeScan *lrs);
 
   // callbacks
   virtual void laserCallback(sensor_msgs::msg::LaserScan::ConstSharedPtr scan) = 0;
+  void gpsCallback(nav_msgs::msg::Odometry::ConstSharedPtr msg);
+  void maybeAddGPSConstraintForBufferedNodes();
   bool mapCallback(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<nav_msgs::srv::GetMap::Request> req,
@@ -145,6 +152,14 @@ protected:
     const std::shared_ptr<slam_toolbox::srv::Pause::Request> req,
     std::shared_ptr<slam_toolbox::srv::Pause::Response> resp);
 
+  //edition
+  void addEdgeBetweenNodes(
+    karto::LocalizedRangeScan* initial_scan,
+    karto::LocalizedRangeScan* current_scan,
+    std::unique_ptr<Mapper> & mapper,
+    karto::Pose2 mean_diff,
+    karto::Matrix3 covariance);
+
   // ROS-y-ness
   std::unique_ptr<tf2_ros::Buffer> tf_;
   std::unique_ptr<tf2_ros::TransformListener> tfL_;
@@ -161,7 +176,7 @@ protected:
   std::shared_ptr<rclcpp::Service<slam_toolbox::srv::SerializePoseGraph>> ssSerialize_;
   std::shared_ptr<rclcpp::Service<slam_toolbox::srv::DeserializePoseGraph>> ssDesserialize_;
   std::shared_ptr<rclcpp::Service<slam_toolbox::srv::Reset>> ssReset_;
-
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr gps_sub_;
   // Storage for ROS parameters
   std::string odom_frame_, map_frame_, base_frame_, map_name_, scan_topic_;
   bool use_map_saver_;
@@ -173,7 +188,18 @@ protected:
   double resolution_;
   double position_covariance_scale_;
   double yaw_covariance_scale_;
-  bool first_measurement_, enable_interactive_mode_;
+  bool first_measurement_, enable_interactive_mode_, enable_gps_constraints_;
+  bool map_start_with_map_offset_, enable_edition_mode_;
+  std::vector<int64_t> nodes_to_link_;
+  int gps_node_counter_, gps_every_n_nodes_, gps_buffer_size_;
+  double gps_covariance_threshold_, gps_covariance_scale_;
+  rclcpp::Duration gps_max_time_delta_;
+
+  struct PendingGPSNode
+  {
+    int node_id;
+    rclcpp::Time stamp;
+  };
 
   // Book keeping
   std::unique_ptr<mapper_utils::SMapper> smapper_;
@@ -190,7 +216,9 @@ protected:
   // Internal state
   std::vector<std::unique_ptr<boost::thread>> threads_;
   tf2::Transform map_to_odom_;
-  boost::mutex map_to_odom_mutex_, smapper_mutex_, pose_mutex_;
+  boost::mutex map_to_odom_mutex_, smapper_mutex_, pose_mutex_, gps_buffer_mutex_;
+  std::deque<nav_msgs::msg::Odometry::ConstSharedPtr> gps_buffer_;
+  std::deque<PendingGPSNode> gps_node_buffer_;
   PausedState state_;
   nav_msgs::srv::GetMap::Response map_;
   ProcessType processor_type_;

@@ -6,7 +6,7 @@ We've received feedback from users and have robots operating in the following en
 - Libraries
 - Research
 
-It is also the currently supported ROS2-SLAM library. See tutorials for working with it in [ROS2 Navigation here](https://navigation.ros.org/tutorials/docs/navigation2_with_slam.html).
+It is also the currently supported ROS2-SLAM library. See tutorials for working with it in [ROS 2 Nav2 here](https://docs.nav2.org/tutorials/docs/navigation2_with_slam.html).
 
 ### Cite This Work
 
@@ -52,7 +52,7 @@ An overview of how the map was generated is presented below:
 
 # Support and Contribution
 
-If you have any questions on use or configuration, please post your questions on [ROS Answers](answers.ros.org) and someone from the community will work their hardest to get back to you. Tangible issues in the codebase or feature requests should be made with GitHub issues.  
+If you have any questions on use or configuration, please post your questions on [Robotics Stack Exchange](https://robotics.stackexchange.com) with the `slam` and `ros2` tags and someone from the community will work their hardest to get back to you. Tangible issues in the codebase or feature requests should be made with GitHub issues.  
 
 If you're interested in contributing to this project in a substantial way, please file a public GitHub issue on your new feature / patch. If for some reason the development of this feature is sensitive, please email the maintainers at their email addresses listed in the `package.xml` file. 
 
@@ -251,6 +251,8 @@ The following settings and options are exposed to you. My default configuration 
 `yaw_covariance_scale` - Amount to scale yaw covariance when publishing pose from scan match.  See description of position_covariance_scale.  Default: 1.0
 
 `resolution` - Resolution of the 2D occupancy map to generate
+
+`min_laser_range` - Minimum laser range to use for 2D occupancy map rasterizing
 
 `max_laser_range` - Maximum laser range to use for 2D occupancy map rasterizing
 

@@ -1,0 +1,110 @@
+# For parameter descriptions, please refer to the template parameter files for each node.
+ekf_filter_node_odom:
+  ros__parameters:
+    frequency: 30.0
+    two_d_mode: true
+    print_diagnostics: true
+    debug: false
+    publish_tf: true
+    publish_acceleration: true
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    odom0: /wheel_odometry/global_odometry
+    odom0_config: [false,  false,  false,
+                  false, false, false,
+                  true, true, false,
+                  false, false, false,
+                  false, false, false]
+
+
+    imu0: /imu/data
+    imu0_differential: true
+    # If we are running on a real robot we set the imu parameter to differential because heading measurements from our IMU are not really trustworthy 
+    # Thus we prefer to fuse angular speed (which is really accurate) and let the heading be adjusted by the fusing of GPS data. In simulation we
+    # Do fuse absolute heading because in this case it is 100% accurate.
+    # imu0_differential: true # Set in launch file
+    imu0_config: [false, false, false,
+                  false,  false,  true,
+                  false, false, false,
+                  false, false, false,
+                  false, false, false]
+    imu0_remove_gravitational_acceleration: true
+
+    initial_state: [623.0903117652447, 845.2264128627369, 0.0, 0.0, 0.0, 3.1191457830633116, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    initial_estimate_covariance: [0.0027350444853745967, 0.0027350428540047944, 1e-5, 1e-5, 1e-5, 0.002997544751604817, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5]
+
+    process_noise_covariance: [0.1, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                              0.0,    0.1, 0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                              0.0,    0.0,    0.04, 0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                              0.0,    0.0,    0.0,    0.03, 0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                              0.0,    0.0,    0.0,    0.0,    0.03, 0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                              0.0,    0.0,    0.0,    0.0,    0.0,    0.06, 0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                              0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.025, 0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                              0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.025, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                              0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.05, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                              0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.002, 0.0,    0.0,    0.0,    0.0,    0.0,
+                              0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.002, 0.0,    0.0,    0.0,    0.0,
+                              0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.1, 0.0,    0.0,    0.0,
+                              0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.01, 0.0,    0.0,
+                              0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.01, 0.0,
+                              0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.01]
+
+ekf_filter_node_map:
+  ros__parameters:
+    frequency: 30.0
+    two_d_mode: true
+    print_diagnostics: true
+    debug: false
+    publish_tf: false
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: map
+
+    odom0: /wheel_odometry/global_odometry
+    odom0_config: [false,  false,  false,
+                  false, false, false,
+                  true, true, false,
+                  false, false, false,
+                  false, false, false]
+
+    odom1: odometry/gps
+    odom1_config: [true,  true,  false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, false]
+    
+    # pose0: /pose
+    # pose0_config: [true, true, true,
+    #               false, false, false,
+    #               false, false, false,
+    #               false, false, false,
+    #               false, false, false]
+
+    imu0: /imu/data_abs_heading
+    imu0_differential: false # In this node we put the corrected imu
+    imu0_config: [false, false, false,
+                  false,  false,  true,
+                  false, false, false,
+                  false, false, false,
+                  false, false, false]
+    imu0_remove_gravitational_acceleration: true
+
+    use_control: false
+
+    #                             x      y      z     roll   pitch  yaw   x_vel  y_vel  z_vel  r_vel  p_vel  y_vel  x_acc  y_acc  z_acc 
+    initial_estimate_covariance: [1e5, 1e5, 1e-9, 1e5, 1e5, 1e5, 1e5, 1e5, 1e5, 1e5, 1e5, 1e5, 1e5, 1e5, 1e5]
+
+    #                          x     y     z     roll  pitch yaw  x_vel  y_vel  z_vel r_vel p_vel y_vel x_acc y_acc z_acc 
+    process_noise_covariance: [0.05, 0.05, 0.06, 0.03, 0.03, 0.1, 0.05,  0.05, 0.04, 0.01, 0.01,  0.01, 0.01, 0.01, 0.015]
+
+map_server:
+  ros__parameters:
+    use_sim_time: true
+    yaml_filename: "test_berkely_processed.yaml"

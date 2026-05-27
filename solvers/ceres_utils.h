@@ -7,7 +7,7 @@
 #define SOLVERS__CERES_UTILS_H_
 
 #include <ceres/ceres.h>
-#include <ceres/autodiff_manifold.h>
+#include <ceres/local_parameterization.h>
 #include <cmath>
 #include <utility>
 
@@ -35,27 +35,21 @@ inline T NormalizeAngle(const T & angle_radians)
 /*****************************************************************************/
 /*****************************************************************************/
 
-// Defines a manifold for updating the angle to be constrained in [-pi to pi).
-class AngleManifold {
- public:
-  template <typename T>
-  bool Plus(const T* x_radians,
-            const T* delta_radians,
-            T* x_plus_delta_radians) const {
-    *x_plus_delta_radians = NormalizeAngle(*x_radians + *delta_radians);
+class AngleLocalParameterization
+{
+public:
+  template<typename T>
+  bool operator()(
+    const T * theta_radians, const T * delta_theta_radians,
+    T * theta_radians_plus_delta) const
+  {
+    *theta_radians_plus_delta = NormalizeAngle(*theta_radians + *delta_theta_radians);
     return true;
   }
 
-  template <typename T>
-  bool Minus(const T* y_radians,
-             const T* x_radians,
-             T* y_minus_x_radians) const {
-    *y_minus_x_radians = NormalizeAngle(*y_radians - *x_radians);
-    return true;
-  }
-
-  static ceres::Manifold* Create() {
-    return new ceres::AutoDiffManifold<AngleManifold, 1, 1>;
+  static ceres::LocalParameterization * Create()
+  {
+    return new ceres::AutoDiffLocalParameterization<AngleLocalParameterization, 1, 1>;
   }
 };
 
@@ -124,6 +118,44 @@ private:
   const double yaw_ab_radians_;
   // The inverse square root of the measurement covariance matrix.
   const Eigen::Matrix3d sqrt_information_;
+};
+
+class AbsolutePositionErrorTerm
+{
+public:
+  AbsolutePositionErrorTerm(
+    double x_meas, double y_meas,
+    const Eigen::Matrix2d & sqrt_information)
+  : x_meas_(x_meas), y_meas_(y_meas), sqrt_information_(sqrt_information)
+  {
+  }
+
+  template<typename T>
+  bool operator()(
+    const T * const x, const T * const y, const T * const /*yaw*/,
+    T * residuals_ptr) const
+  {
+    Eigen::Map<Eigen::Matrix<T, 2, 1>> residuals(residuals_ptr);
+    residuals(0) = *x - T(x_meas_);
+    residuals(1) = *y - T(y_meas_);
+    residuals = sqrt_information_.template cast<T>() * residuals;
+    return true;
+  }
+
+  static ceres::CostFunction * Create(
+    double x_meas, double y_meas,
+    const Eigen::Matrix2d & sqrt_information)
+  {
+    return new ceres::AutoDiffCostFunction<AbsolutePositionErrorTerm, 2, 1, 1, 1>(
+      new AbsolutePositionErrorTerm(x_meas, y_meas, sqrt_information));
+  }
+
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+private:
+  const double x_meas_;
+  const double y_meas_;
+  const Eigen::Matrix2d sqrt_information_;
 };
 
 #endif  // SOLVERS__CERES_UTILS_H_
