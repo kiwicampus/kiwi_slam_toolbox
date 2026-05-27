@@ -40,11 +40,16 @@ map_start_pose: [450.3216783544306, 959.1554233038154, 2.1179507189976228]
 ### 4. Update localization_params.yaml file 
 Open the file in `/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/mapping_localization_params.yaml` and edit the `initial_state` and `initial_state_covariance` tags from the params file using the values computed previously by the python script.
 
-### 5. Download the segmapping file corresponding to the location you are working in and set the following env var
-```bash
-export SEGMAP_FILE=/workspace/maps2d/segmapping/MOR.yaml
+### 5. Download the segmapping file for your site
+The launch file loads segmapping from a fixed path derived from the `maps_site` launch argument (same short name as `mapping_rosbag_manager` search terms, e.g. `MOR`, `LLE`, `USI`):
+
 ```
-Note: Using the [API](REDACTED_API_URL), you can download the segmapping .png file. You can create a .yaml with the following values:
+/workspace/maps/maps2d/<maps_site>/segmapping/segmapping_png.yaml
+```
+
+Download the segmapping assets for your site into that folder before launching.
+
+Note: Using the [API](REDACTED_API_URL), you can download the segmapping .png file. Save it under the path above and create `segmapping_png.yaml` with values like:
 ```yaml
 image: MOR_OUTDOORS_segmapping_png.png # CHANGE THIS FOR THE ONE YOU DOWNLOADED
 mode: trinary
@@ -55,12 +60,39 @@ occupied_thresh: 0.65
 free_thresh: 0.196
 ```
 
+### 6. GPS constraints (optional)
+When `enable_gps_constraints: true` in `mapper_params_online_sync.yaml` (enabled by default), slam_toolbox subscribes to `/odometry/global` and injects GPS pose factors into the Ceres pose graph.
+
+Requirements:
+- `solver_plugin` must be `solver_plugins::CeresSolver` (other solvers log a warning and ignore GPS input)
+
+Parameters in `config/mapper_params_online_sync.yaml`:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `enable_gps_constraints` | `true` | Subscribe to `/odometry/global` and add GPS factors |
+| `gps_constraint_every_n_nodes` | `5` | Add a GPS-eligible node every N pose-graph nodes |
+| `gps_covariance_threshold` | `0.015` | Skip GPS msgs whose `var_x` or `var_y` exceeds this |
+| `gps_covariance_scale` | `1.0` | Scale factor applied to the GPS information matrix |
+| `gps_buffer_size` | `200` | Max buffered GPS messages and pending nodes |
+| `gps_max_time_delta` | `0.2` | Max \|Δt\| (seconds) to match a GPS msg to a node |
+
+Set `enable_gps_constraints: false` to disable GPS factor injection entirely.
+
 ## Mapping
 ### 1. Launch mapping
 ```bash
-ros2 launch slam_toolbox online_sync_launch_with_local_ekf.py use_sim_time:=true  slam_params_file:=/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/mapper_params_online_sync.yaml
+ros2 launch slam_toolbox online_sync_launch_with_local_ekf.py \
+  use_sim_time:=true \
+  maps_site:=MOR \
+  slam_params_file:=/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/mapper_params_online_sync.yaml
 ```
-This will also launch rviz, when everything loads, you should be able to see the segmapping.
+
+Launch arguments:
+- `maps_site` — site folder under `/workspace/maps/maps2d/` (default: `LLE`)
+- `use_rviz` — set to `false` to skip RViz (default: `true`)
+
+By default this starts RViz with `slam_toolbox_default.rviz`, which shows the segmapping overlay and an `rviz_satellite` AerialMap layer (satellite imagery; uses `/fix` when available for georeferencing).
 
 
 ### 2. Play the rosbag (in another terminal)
@@ -119,7 +151,7 @@ Edit the config file: `/workspace/rover/ros2/src/location/kiwi_slam_toolbox/conf
 
 Change the field `map_file_name` by the one from the map you want to edit and launch:
 ```bash
-ros2 launch slam_toolbox online_sync_launch_with_local_ekf.py use_sim_time:=false  slam_params_file:=/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/mapper_params_online_sync_edition.yaml
+ros2 launch slam_toolbox online_sync_launch_with_local_ekf.py use_sim_time:=false maps_site:=MOR slam_params_file:=/workspace/rover/ros2/src/location/kiwi_slam_toolbox/config/mapper_params_online_sync_edition.yaml
 ```
 This option is still not working well. Fortunately for most cases it does not seem necessary.
 
